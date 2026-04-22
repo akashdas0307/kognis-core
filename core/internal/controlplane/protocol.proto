@@ -19,6 +19,9 @@ service ControlPlane {
 
   // Shutdown initiates graceful shutdown of a plugin (SPEC 04 Section 4.3).
   rpc Shutdown(ShutdownPluginRequest) returns (ShutdownPluginResponse);
+
+  // Ready signal from plugin when it has completed its initialization (SPEC 04 Section 4.2 Step 3).
+  rpc Ready(ReadyRequest) returns (ReadyAck);
 }
 
 // RegisterRequest is the initial message from a plugin during registration
@@ -31,6 +34,7 @@ message RegisterRequest {
   string manifest_hash = 5;
   repeated string emergency_bypass_types = 6;
   int32 pid = 7;
+  string entrypoint = 8;
 }
 
 // RegisterResponse is the core daemon's response to a plugin registration
@@ -45,6 +49,19 @@ message RegisterResponse {
   map<string, string> config_bundle = 7;
   repeated string peer_capabilities = 8;
   string error = 9;
+}
+
+// ReadyRequest is Step 3 of the handshake protocol (SPEC 04 Section 4.2).
+// Sent by the plugin when it is ready to receive messages.
+message ReadyRequest {
+  string plugin_id = 1;
+}
+
+// ReadyAck is Step 4 of the handshake protocol (SPEC 04 Section 4.2).
+// Core daemon acknowledges the Ready signal.
+message ReadyAck {
+  string plugin_id = 1;
+  string status = 2;
 }
 
 // HealthCheckRequest queries the health status of a specific plugin.

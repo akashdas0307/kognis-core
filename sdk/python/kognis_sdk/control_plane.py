@@ -8,11 +8,14 @@ dispatch handling, capability queries, and shutdown.
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Awaitable
 
+import grpc
+from kognis_sdk.generated import protocol_pb2, protocol_pb2_grpc
 from kognis_sdk.envelope import Envelope, EnvelopeError, validate_envelope
 from kognis_sdk.manifest import Manifest
 
@@ -63,6 +66,7 @@ class RegisterAck:
     """Step 2 of registration handshake — core's response."""
     plugin_id_runtime: str
     event_bus_token: str
+    event_bus_url: str = ""
     config_bundle: dict[str, Any] = field(default_factory=dict)
     peer_capabilities_snapshot: dict[str, Any] = field(default_factory=dict)
 
@@ -175,9 +179,12 @@ class ControlPlaneClient:
     def __init__(self, socket_path: str = "/tmp/kognis.sock") -> None:
         self.socket_path = socket_path
         self.state = PluginState.UNREGISTERED
+        self.plugin_id: str = ""
         self.plugin_id_runtime: str = ""
         self.event_bus_token: str = ""
-        self._connected = False
+        self.event_bus_url: str = ""
+        self._channel: grpc.aio.Channel | None = None
+        self._stub: protocol_pb2_grpc.ControlPlaneStub | None = None
         self._dispatch_handlers: dict[str, Callable[[DispatchMessage], Awaitable[Envelope]]] = {}
         self._running = False
         self._heartbeat_interval = 10
@@ -186,10 +193,15 @@ class ControlPlaneClient:
 
     async def connect(self) -> None:
         """Connect to the core daemon via Unix socket."""
-        self._connected = True
+        if self._channel:
+            return
+
+        target = f"unix:{self.socket_path}"
+        self._channel = grpc.aio.insecure_channel(target)
+        self._stub = protocol_pb2_grpc.ControlPlaneStub(self._channel)
         self.state = PluginState.UNREGISTERED
 
-    async def register(self, manifest: Manifest, pid: int) -> RegisterAck:
+    async def register(self, manifest: Manifest, pid: int, entrypoint: str = "") -> RegisterAck:
         """Execute registration handshake step 1-2.
 
         Sends REGISTER_REQUEST and waits for REGISTER_ACK.
@@ -199,16 +211,41 @@ class ControlPlaneClient:
         if self.state not in (PluginState.UNREGISTERED,):
             raise ControlPlaneError("invalid_state", f"Cannot register from state {self.state.value}")
 
-        request = RegisterRequest(manifest=manifest, pid=pid)
-        self.state = PluginState.REGISTERED
+        if not self._stub:
+            raise ControlPlaneError("not_connected", "Control plane not connected")
 
-        ack = RegisterAck(
-            plugin_id_runtime=f"{manifest.plugin_id}_{pid}",
-            event_bus_token=f"token_{manifest.plugin_id}",
+        # Step 1: REGISTER_REQUEST
+        request = protocol_pb2.RegisterRequest(
+            plugin_id=manifest.plugin_id,
+            name=manifest.plugin_name,
+            version=manifest.version,
+            capabilities=[s.slot for s in manifest.slot_registrations],
+            manifest_hash="", # To be implemented
+            pid=pid,
+            entrypoint=entrypoint
         )
-        self.plugin_id_runtime = ack.plugin_id_runtime
-        self.event_bus_token = ack.event_bus_token
-        return ack
+
+        try:
+            # Step 2: REGISTER_ACK
+            response = await self._stub.Register(request, timeout=REGISTRATION_ACK_TIMEOUT)
+            
+            if response.error:
+                raise ControlPlaneError("registration_failed", response.error)
+
+            ack = RegisterAck(
+                plugin_id_runtime=response.plugin_id_runtime,
+                event_bus_token=response.event_bus_token,
+                config_bundle=dict(response.config_bundle),
+                peer_capabilities_snapshot={} # Proto doesn't have this yet in detail
+            )
+            self.plugin_id = manifest.plugin_id
+            self.plugin_id_runtime = ack.plugin_id_runtime
+            self.event_bus_token = ack.event_bus_token
+            self.event_bus_url = response.event_bus_url
+            self.state = PluginState.REGISTERED
+            return ack
+        except grpc.RpcError as e:
+            raise ControlPlaneError("rpc_error", str(e))
 
     async def send_ready(self, subscribed_topics: list[str], health_endpoint: str = "") -> None:
         """Execute registration handshake step 3 — send READY.
@@ -218,9 +255,17 @@ class ControlPlaneClient:
         if self.state != PluginState.REGISTERED:
             raise ControlPlaneError("invalid_state", "Must be REGISTERED before sending READY")
 
-        ready = ReadyMessage(subscribed_topics=subscribed_topics, health_endpoint=health_endpoint)
-        self.state = PluginState.HEALTHY_ACTIVE
-        self._running = True
+        if not self._stub:
+            raise ControlPlaneError("not_connected", "Control plane not connected")
+
+        request = protocol_pb2.ReadyRequest(plugin_id=self.plugin_id)
+        
+        try:
+            await self._stub.Ready(request, timeout=READY_CONFIRM_TIMEOUT)
+            self.state = PluginState.HEALTHY_ACTIVE
+            self._running = True
+        except grpc.RpcError as e:
+            raise ControlPlaneError("rpc_error", str(e))
 
     async def dispatch(self, msg: DispatchMessage) -> Envelope:
         """Process a dispatch from core.
@@ -284,6 +329,14 @@ class ControlPlaneClient:
 
         self.state = PluginState.SHUTTING_DOWN
         self._running = False
+
+        if self._stub:
+            request = protocol_pb2.ShutdownPluginRequest(plugin_id=self.plugin_id_runtime)
+            try:
+                await self._stub.Shutdown(request)
+            except grpc.RpcError:
+                pass # Best effort
+
         self.state = PluginState.SHUT_DOWN
 
     @property
@@ -292,9 +345,12 @@ class ControlPlaneClient:
 
     @property
     def is_connected(self) -> bool:
-        return self._connected
+        return self._channel is not None
 
     async def close(self) -> None:
         """Close the control plane connection."""
-        self._connected = False
+        if self._channel:
+            await self._channel.close()
+            self._channel = None
+            self._stub = None
         self._running = False

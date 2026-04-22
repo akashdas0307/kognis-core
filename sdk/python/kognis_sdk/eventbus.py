@@ -12,6 +12,10 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Awaitable
 from datetime import datetime, timezone
 
+import nats
+from nats.aio.client import Client as NATSClient
+from nats.aio.msg import Msg
+
 
 @dataclass
 class EventBusConfig:
@@ -51,38 +55,49 @@ class EventBusClient:
 
     def __init__(self, config: EventBusConfig | None = None) -> None:
         self.config = config or EventBusConfig()
-        self._connected = False
-        self._subscriptions: dict[str, Subscription] = {}
-        self._next_sid = 1
+        self._nc: NATSClient | None = None
+        self._subscriptions: dict[str, Any] = {}
         self._message_count = 0
 
-    async def connect(self, token: str | None = None) -> None:
+    async def connect(self, token: str | None = None, servers: list[str] | None = None) -> None:
         """Connect to NATS server using registration token."""
+        if self._nc and self._nc.is_connected:
+            return
+
         if token:
             self.config.token = token
-        self._connected = True
+        if servers:
+            self.config.servers = servers
+
+        self._nc = await nats.connect(
+            servers=self.config.servers,
+            token=self.config.token,
+            name=self.config.name,
+            max_reconnect_attempts=self.config.reconnect_attempts,
+            reconnect_time_wait=self.config.reconnect_wait_seconds,
+        )
 
     async def close(self) -> None:
         """Disconnect from NATS server."""
-        self._connected = False
+        if self._nc:
+            await self._nc.drain()
+            self._nc = None
+        self._subscriptions.clear()
 
     @property
     def is_connected(self) -> bool:
-        return self._connected
+        return self._nc is not None and self._nc.is_connected
 
     async def publish(self, topic: str, data: dict[str, Any]) -> None:
         """Publish a message to a topic.
 
         Topic naming convention from SPEC 06: state.<plugin_id>.<state_name>
         """
-        if not self._connected:
+        if not self.is_connected or self._nc is None:
             raise EventBusError("not_connected", "Event bus not connected")
 
-        message = {
-            "topic": topic,
-            "data": data,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        payload = json.dumps(data).encode("utf-8")
+        await self._nc.publish(topic, payload)
         self._message_count += 1
 
     async def subscribe(
@@ -101,20 +116,28 @@ class EventBusClient:
         Returns:
             Subscription object for managing the subscription.
         """
-        if not self._connected:
+        if not self.is_connected or self._nc is None:
             raise EventBusError("not_connected", "Event bus not connected")
 
-        sid = self._next_sid
-        self._next_sid += 1
+        async def nats_handler(msg: Msg) -> None:
+            try:
+                data = json.loads(msg.data.decode("utf-8"))
+                await handler(data)
+            except Exception as e:
+                # Log error in handler
+                pass
 
-        sub = Subscription(topic=topic, handler=handler, queue_group=queue_group, sid=sid)
+        sub = await self._nc.subscribe(topic, queue=queue_group, cb=nats_handler)
+        
+        sdk_sub = Subscription(topic=topic, handler=handler, queue_group=queue_group, sid=0) # sid is internal to nats-py now
         self._subscriptions[topic] = sub
-        return sub
+        return sdk_sub
 
     async def unsubscribe(self, topic: str) -> None:
         """Remove a subscription by topic."""
         if topic in self._subscriptions:
-            del self._subscriptions[topic]
+            sub = self._subscriptions.pop(topic)
+            await sub.unsubscribe()
 
     def get_subscribed_topics(self) -> list[str]:
         """Return list of currently subscribed topics."""
@@ -130,10 +153,12 @@ class EventBusClient:
 
         Used for capability queries and other synchronous interactions.
         """
-        if not self._connected:
+        if not self.is_connected or self._nc is None:
             raise EventBusError("not_connected", "Event bus not connected")
 
-        return {"result": "ok"}
+        payload = json.dumps(data).encode("utf-8")
+        msg = await self._nc.request(topic, payload, timeout=timeout)
+        return json.loads(msg.data.decode("utf-8"))
 
     @property
     def message_count(self) -> int:

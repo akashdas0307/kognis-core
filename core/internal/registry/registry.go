@@ -85,6 +85,7 @@ type PluginEntry struct {
 	SubscribedTopics     []string             // topics plugin subscribed to after registration
 	ConfigBundle         map[string]string    // config received from core in REGISTER_ACK
 	ShutdownRequestedAt  time.Time            // when shutdown was requested
+	Entrypoint           string               // command to start the plugin (SPEC 02 runtime.entrypoint)
 }
 
 // SlotRegistration records a plugin's registration for a pipeline slot.

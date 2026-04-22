@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -215,12 +217,27 @@ func (s *Supervisor) checkPluginHealth() {
 
 	for _, plugin := range s.registry.List() {
 		switch plugin.State {
-		case registry.StateUnresponsive:
+		case registry.StateUnresponsive, registry.StateUnhealthy:
 			s.restartPlugin(plugin.ID)
-		case registry.StateUnhealthy:
-			log.Printf("supervisor: plugin %s is unhealthy, monitoring", plugin.ID)
 		}
 	}
+}
+
+// spawnProcess starts a new plugin process from an entrypoint string.
+func (s *Supervisor) spawnProcess(entrypoint string) error {
+	parts := strings.Fields(entrypoint)
+	if len(parts) == 0 {
+		return fmt.Errorf("empty entrypoint")
+	}
+
+	cmd := exec.Command(parts[0], parts[1:]...)
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start process: %w", err)
+	}
+
+	log.Printf("supervisor: spawned process with PID %d: %s", cmd.Process.Pid, entrypoint)
+	return nil
 }
 
 // restartPlugin attempts to restart an unresponsive plugin using the SPEC 08
@@ -256,6 +273,18 @@ func (s *Supervisor) restartPlugin(pluginID string) {
 
 	log.Printf("supervisor: restarting plugin %s (attempt %d, backoff %v)", pluginID, newCount, delay)
 	s.registry.UpdateState(pluginID, registry.StateStarting)
+
+	// If the plugin has an entrypoint defined, spawn a new process.
+	if plugin, ok := s.registry.Get(pluginID); ok && plugin.Entrypoint != "" {
+		go func(entrypoint string, d time.Duration) {
+			if d > 0 {
+				time.Sleep(d)
+			}
+			if err := s.spawnProcess(entrypoint); err != nil {
+				log.Printf("supervisor: failed to spawn process for %s: %v", pluginID, err)
+			}
+		}(plugin.Entrypoint, delay)
+	}
 
 	// Publish restart command
 	subject := fmt.Sprintf("kognis.plugin.%s.restart", pluginID)

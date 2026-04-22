@@ -1,0 +1,19 @@
+manifest_version: 1
+plugin_id: hello_world
+plugin_name: Hello World Plugin
+version: 0.1.0
+author: Kognis Team
+license: MIT
+description: A simple hello world plugin for Kognis
+language: python
+handler_mode: stateless
+runtime:
+  entrypoint: python main.py
+slot_registrations: []
+provides_capabilities: []
+requires_capabilities: []
+event_subscriptions: []
+event_publications: []
+state_broadcasts: []
+lifecycle:
+  health_pulse_interval: 10

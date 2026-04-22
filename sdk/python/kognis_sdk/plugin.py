@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
@@ -21,6 +23,7 @@ from kognis_sdk.control_plane import (
 )
 from kognis_sdk.envelope import Envelope, create_envelope, validate_envelope
 from kognis_sdk.eventbus import EventBusClient
+from kognis_sdk.health import HealthPulseEmitter
 from kognis_sdk.manifest import Manifest
 
 logger = logging.getLogger("kognis_sdk")
@@ -60,6 +63,11 @@ class Plugin(ABC):
         self.config = config or PluginConfig()
         self.control_plane = ControlPlaneClient(socket_path=self.config.socket_path)
         self.event_bus = EventBusClient()
+        self.health_emitter = HealthPulseEmitter(
+            plugin_id=self.manifest.plugin_id,
+            event_bus=self.event_bus,
+            interval_seconds=getattr(self.manifest.lifecycle, "health_pulse_interval", 10),
+        )
         self._slot_handlers: dict[str, Callable[[Envelope], Awaitable[Envelope]]] = {}
         self._running = False
         self._state = PluginState.UNREGISTERED
@@ -115,14 +123,21 @@ class Plugin(ABC):
 
         Implements the 4-step registration handshake from SPEC 04.
         """
-        import os
-
+        # Step 0: Connect to control plane
         await self.control_plane.connect()
 
-        ack = await self.control_plane.register(self.manifest, pid=os.getpid())
+        # Step 1: Register
+        entrypoint = f"{sys.executable} {sys.argv[0]}"
+        ack = await self.control_plane.register(
+            self.manifest, 
+            pid=os.getpid(),
+            entrypoint=entrypoint
+        )
 
+        # Step 2: Connect NATS (Event Bus)
         await self.event_bus.connect(token=ack.event_bus_token)
 
+        # Register slot handlers
         for slot_reg in self.manifest.slot_registrations:
             if slot_reg.slot in self._slot_handlers:
 
@@ -142,7 +157,12 @@ class Plugin(ABC):
         for sub in self.manifest.event_subscriptions:
             subscribed_topics.append(sub.topic)
 
+        # Step 3: Send Ready
         await self.control_plane.send_ready(subscribed_topics=subscribed_topics)
+        
+        # Step 4: Start continuous Pulse loop
+        await self.health_emitter.start()
+        
         self._state = PluginState.HEALTHY_ACTIVE
         self._running = True
 
@@ -170,6 +190,7 @@ class Plugin(ABC):
         self._state = PluginState.SHUTTING_DOWN
 
         await self.on_shutdown()
+        await self.health_emitter.stop()
         await self.control_plane.shutdown()
         await self.event_bus.close()
 

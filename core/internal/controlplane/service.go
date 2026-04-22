@@ -57,6 +57,7 @@ func (s *ControlPlaneService) Register(ctx context.Context, req *RegisterRequest
 		ManifestHash:         req.ManifestHash,
 		EmergencyBypassTypes: req.EmergencyBypassTypes,
 		PID:                  int(req.Pid),
+		Entrypoint:           req.Entrypoint,
 	}
 
 	resp, err := s.handshake.StartHandshake(handshakeReq)
@@ -173,6 +174,27 @@ func (s *ControlPlaneService) Shutdown(ctx context.Context, req *ShutdownPluginR
 	return &ShutdownPluginResponse{
 		Accepted: true,
 		Reason:   fmt.Sprintf("shutdown requested with grace period %s", gracePeriod),
+	}, nil
+}
+
+// Ready handles the Step 3 signal from a plugin after it has connected to the
+// event bus and is ready to process messages (SPEC 04 Section 4.2).
+func (s *ControlPlaneService) Ready(ctx context.Context, req *ReadyRequest) (*ReadyAck, error) {
+	if s.handshake == nil {
+		return nil, status.Error(codes.Internal, "handshake manager not configured")
+	}
+
+	readyMsg := &ReadyMessage{
+		PluginID: req.PluginId,
+	}
+
+	if err := s.handshake.CompleteHandshake(req.PluginId, readyMsg); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to complete handshake: %v", err)
+	}
+
+	return &ReadyAck{
+		PluginId: req.PluginId,
+		Status:   "ACTIVE",
 	}, nil
 }
 

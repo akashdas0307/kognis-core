@@ -45,6 +45,7 @@ type HandshakeRequest struct {
 	ManifestHash         string   `json:"manifest_hash"`
 	EmergencyBypassTypes []string `json:"emergency_bypass_types"`
 	PID                  int      `json:"pid"`
+	Entrypoint           string   `json:"entrypoint"`
 }
 
 // HandshakeResponse is the core daemon's response to a plugin handshake
@@ -147,6 +148,7 @@ func (hm *HandshakeManager) StartHandshake(req *HandshakeRequest) (*HandshakeRes
 		EmergencyBypassTypes: req.EmergencyBypassTypes,
 		HandshakeStep:       int(StepRegister),
 		ConfigBundle:        make(map[string]string),
+		Entrypoint:           req.Entrypoint,
 	}
 
 	// Register the plugin (validates capability conflicts and emergency bypass types)
