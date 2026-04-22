@@ -43,20 +43,20 @@ class HealthPulse:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "health_pulse": {
-                "plugin_id": self.plugin_id,
-                "timestamp": self.timestamp,
-                "status": self.status,
-                "metrics": self.metrics,
-                "current_activity": self.current_activity,
-                "last_dispatch_at": self.last_dispatch_at,
-                "alerts": self.alerts,
-            }
+            "plugin_id": self.plugin_id,
+            "timestamp": self.timestamp,
+            "status": self.status,
+            "metrics": self.metrics,
+            "current_activity": self.current_activity,
+            "last_dispatch_at": self.last_dispatch_at,
+            "alerts": self.alerts,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HealthPulse:
         hp = data.get("health_pulse", data)
+        if hp is None:
+            hp = data
         return cls(
             plugin_id=hp.get("plugin_id", ""),
             timestamp=hp.get("timestamp", ""),
@@ -142,7 +142,7 @@ class HealthPulseEmitter:
     async def emit(self) -> HealthPulse:
         """Emit a single health pulse to the event bus."""
         pulse = self.build_pulse()
-        topic = f"health.{self.plugin_id}"
+        topic = f"kognis.health.{self.plugin_id}"
         await self.event_bus.publish(topic, pulse.to_dict())
         return pulse
 

@@ -534,7 +534,7 @@ func TestSupervisorHealthPulseRecovery(t *testing.T) {
 	// Simulate a HEALTHY pulse -- should reset RestartCount since > 0
 	pulseData, _ := json.Marshal(map[string]string{
 		"plugin_id": "plugin-recovery-test",
-		"state":     "HEALTHY",
+		"status":    "HEALTHY",
 	})
 
 	msg := &nats.Msg{
@@ -582,7 +582,7 @@ func TestSupervisorHealthPulseResetsHeartbeatOnHealthy(t *testing.T) {
 	// Send HEALTHY pulse
 	pulseData, _ := json.Marshal(map[string]string{
 		"plugin_id": "plugin-hb-reset-test",
-		"state":     "HEALTHY",
+		"status":    "HEALTHY",
 	})
 	msg := &nats.Msg{Data: pulseData}
 
@@ -603,7 +603,7 @@ func TestSupervisorIgnoresUnknownPluginHealthPulse(t *testing.T) {
 	// Send a health pulse for a non-existent plugin -- should not panic
 	pulseData, _ := json.Marshal(map[string]string{
 		"plugin_id": "nonexistent-plugin",
-		"state":     "HEALTHY",
+		"status":    "HEALTHY",
 	})
 	msg := &nats.Msg{Data: pulseData}
 

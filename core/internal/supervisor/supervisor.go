@@ -105,8 +105,19 @@ func (s *Supervisor) handleRegistration(msg *nats.Msg) {
 		return
 	}
 
+	// Skip messages that don't have required fields (e.g., lifecycle events
+	// from HandshakeManager that aren't actual registration requests).
+	if entry.ID == "" || entry.Name == "" {
+		return
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Skip if already registered (e.g., via gRPC handshake path).
+	if _, ok := s.registry.Get(entry.ID); ok {
+		return
+	}
 
 	entry.State = registry.StateRegistered
 	if err := s.registry.Register(&entry); err != nil {
@@ -138,7 +149,7 @@ func (s *Supervisor) handleHealthPulse(msg *nats.Msg) {
 
 	var pulse struct {
 		PluginID string `json:"plugin_id"`
-		State    string `json:"state"`
+		Status   string `json:"status"`
 	}
 	if err := json.Unmarshal(msg.Data, &pulse); err != nil {
 		log.Printf("supervisor: invalid health pulse: %v", err)
@@ -151,8 +162,8 @@ func (s *Supervisor) handleHealthPulse(msg *nats.Msg) {
 		return
 	}
 
-	// Update state based on pulse
-	switch pulse.State {
+	// Update state based on pulse status (SPEC 18)
+	switch pulse.Status {
 	case "HEALTHY":
 		// Record heartbeat and reset missed count (SPEC 04 Section 4.7)
 		s.registry.RecordHeartbeat(plugin.ID)
@@ -171,8 +182,12 @@ func (s *Supervisor) handleHealthPulse(msg *nats.Msg) {
 		}
 		s.registry.UpdateState(plugin.ID, registry.StateHealthyActive)
 
-	case "UNHEALTHY":
+	case "DEGRADED":
 		s.registry.UpdateState(plugin.ID, registry.StateUnhealthy)
+	case "ERROR":
+		s.registry.UpdateState(plugin.ID, registry.StateUnhealthy)
+	case "CRITICAL":
+		s.registry.UpdateState(plugin.ID, registry.StateUnresponsive)
 	case "UNRESPONSIVE":
 		s.registry.UpdateState(plugin.ID, registry.StateUnresponsive)
 	}
