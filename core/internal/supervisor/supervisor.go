@@ -10,11 +10,15 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/kognis-framework/kognis-core/core/internal/config"
-	"github.com/kognis-framework/kognis-core/core/internal/eventbus"
-	"github.com/kognis-framework/kognis-core/core/internal/registry"
-	"github.com/kognis-framework/kognis-core/core/internal/router"
+	"github.com/akashdas0307/kognis-core/core/internal/config"
+	"github.com/akashdas0307/kognis-core/core/internal/eventbus"
+	"github.com/akashdas0307/kognis-core/core/internal/registry"
+	"github.com/akashdas0307/kognis-core/core/internal/router"
 )
+
+// missedHeartbeatThreshold is the number of consecutive missed heartbeats
+// before a plugin is considered UNRESPONSIVE (SPEC 04 Section 4.7).
+const missedHeartbeatThreshold = 3
 
 // Supervisor manages plugin lifecycle: registration, health monitoring, and restart.
 type Supervisor struct {
@@ -24,21 +28,17 @@ type Supervisor struct {
 	bus      *eventbus.Bus
 	cfg      config.SupervisorConfig
 
-	restartCounts map[string]int
-	lastRestart   map[string]time.Time
-	cancelFuncs   map[string]context.CancelFunc
+	cancelFuncs map[string]context.CancelFunc
 }
 
 // New creates a new plugin supervisor.
 func New(reg *registry.Registry, rtr *router.Router, bus *eventbus.Bus, cfg config.SupervisorConfig) *Supervisor {
 	return &Supervisor{
-		registry:      reg,
-		router:        rtr,
-		bus:           bus,
-		cfg:           cfg,
-		restartCounts: make(map[string]int),
-		lastRestart:   make(map[string]time.Time),
-		cancelFuncs:   make(map[string]context.CancelFunc),
+		registry:    reg,
+		router:      rtr,
+		bus:         bus,
+		cfg:         cfg,
+		cancelFuncs: make(map[string]context.CancelFunc),
 	}
 }
 
@@ -49,7 +49,8 @@ func (s *Supervisor) Run(ctx context.Context) error {
 		s.cfg.ShutdownGracePeriodSec, s.cfg.MaxRestartAttempts)
 
 	// Subscribe to registration events
-	sub, err := s.bus.Subscribe("kognis.plugin.register", func(msg *nats.Msg) {
+	regSubject := eventbus.PluginLifecycleSubject()
+	sub, err := s.bus.Subscribe(regSubject, func(msg *nats.Msg) {
 		s.handleRegistration(msg)
 	})
 	if err != nil {
@@ -58,7 +59,8 @@ func (s *Supervisor) Run(ctx context.Context) error {
 	defer sub.Unsubscribe()
 
 	// Subscribe to health pulse events
-	healthSub, err := s.bus.Subscribe("kognis.plugin.health", func(msg *nats.Msg) {
+	healthSubject := eventbus.HealthSubject(">")
+	healthSub, err := s.bus.Subscribe(healthSubject, func(msg *nats.Msg) {
 		s.handleHealthPulse(msg)
 	})
 	if err != nil {
@@ -75,6 +77,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-healthTicker.C:
+				s.checkHeartbeatTimeouts()
 				s.checkPluginHealth()
 			case <-ctx.Done():
 				return
@@ -114,6 +117,11 @@ func (s *Supervisor) handleRegistration(msg *nats.Msg) {
 	// Transition to starting state
 	s.registry.UpdateState(entry.ID, registry.StateStarting)
 
+	// Publish lifecycle event
+	s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
+		fmt.Sprintf(`{"event":"registered","plugin_id":"%s","timestamp":"%s"}`, entry.ID, time.Now().UTC().Format(time.RFC3339)),
+	))
+
 	// Acknowledge registration
 	reply := fmt.Sprintf(`{"plugin_id":"%s","state":"REGISTERED"}`, entry.ID)
 	if msg.Reply != "" {
@@ -144,8 +152,23 @@ func (s *Supervisor) handleHealthPulse(msg *nats.Msg) {
 	// Update state based on pulse
 	switch pulse.State {
 	case "HEALTHY":
+		// Record heartbeat and reset missed count (SPEC 04 Section 4.7)
+		s.registry.RecordHeartbeat(plugin.ID)
+
+		// If plugin has any restart history, reset on recovery (SPEC 08 Section 8.4).
+		// Check RestartCount > 0 rather than previous state, because the state
+		// may have already been transitioned to HEALTHY_ACTIVE before this pulse.
+		if plugin.RestartCount > 0 {
+			s.registry.ResetRestartCount(plugin.ID)
+			log.Printf("supervisor: plugin %s recovered, reset restart count", plugin.ID)
+
+			// Publish recovery event
+			s.bus.Publish(eventbus.HealthSubject(plugin.ID), []byte(
+				fmt.Sprintf(`{"event":"recovered","plugin_id":"%s","timestamp":"%s"}`, plugin.ID, time.Now().UTC().Format(time.RFC3339)),
+			))
+		}
 		s.registry.UpdateState(plugin.ID, registry.StateHealthyActive)
-		s.restartCounts[plugin.ID] = 0 // reset restart count on healthy pulse
+
 	case "UNHEALTHY":
 		s.registry.UpdateState(plugin.ID, registry.StateUnhealthy)
 	case "UNRESPONSIVE":
@@ -153,7 +176,39 @@ func (s *Supervisor) handleHealthPulse(msg *nats.Msg) {
 	}
 }
 
-// checkPluginHealth scans all plugins for unresponsive ones.
+// checkHeartbeatTimeouts checks all plugins for missed heartbeats and
+// transitions those exceeding the threshold to UNRESPONSIVE (SPEC 04 Section 4.7).
+func (s *Supervisor) checkHeartbeatTimeouts() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	timeoutIDs := s.registry.CheckHeartbeatTimeouts(missedHeartbeatThreshold)
+	for _, id := range timeoutIDs {
+		plugin, ok := s.registry.Get(id)
+		if !ok {
+			continue
+		}
+		// Only transition if not already in a terminal or unresponsive state
+		if plugin.State == registry.StateHealthyActive || plugin.State == registry.StateUnhealthy {
+			log.Printf("supervisor: plugin %s missed %d heartbeats, marking UNRESPONSIVE", id, missedHeartbeatThreshold)
+			s.registry.UpdateState(id, registry.StateUnresponsive)
+
+			// Publish health event
+			s.bus.Publish(eventbus.HealthSubject(id), []byte(
+				fmt.Sprintf(`{"event":"heartbeat_timeout","plugin_id":"%s","missed":%d,"timestamp":"%s"}`, id, missedHeartbeatThreshold, time.Now().UTC().Format(time.RFC3339)),
+			))
+		}
+	}
+
+	// Increment missed heartbeats for all active/unhealthy plugins
+	for _, plugin := range s.registry.List() {
+		if plugin.State == registry.StateHealthyActive || plugin.State == registry.StateUnhealthy {
+			s.registry.IncrementMissedHeartbeats(plugin.ID)
+		}
+	}
+}
+
+// checkPluginHealth scans all plugins for unresponsive ones and restarts them.
 func (s *Supervisor) checkPluginHealth() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -168,25 +223,48 @@ func (s *Supervisor) checkPluginHealth() {
 	}
 }
 
-// restartPlugin attempts to restart an unresponsive plugin.
+// restartPlugin attempts to restart an unresponsive plugin using the SPEC 08
+// backoff schedule and circuit breaker logic.
 func (s *Supervisor) restartPlugin(pluginID string) {
-	count := s.restartCounts[pluginID]
-	if count >= s.cfg.MaxRestartAttempts {
-		log.Printf("supervisor: plugin %s exceeded max restart attempts (%d), marking DEAD", pluginID, s.cfg.MaxRestartAttempts)
-		s.registry.UpdateState(pluginID, registry.StateDead)
+	// Check circuit breaker BEFORE incrementing (SPEC 08 Section 8.4).
+	// If already at or above max, open the circuit immediately.
+	if s.registry.ShouldCircuitOpen(pluginID, s.cfg.MaxRestartAttempts) {
+		log.Printf("supervisor: plugin %s exceeded max restart attempts (%d), opening circuit breaker", pluginID, s.cfg.MaxRestartAttempts)
+		s.registry.UpdateState(pluginID, registry.StateCircuitOpen)
+
+		// Publish circuit open event
+		plugin, _ := s.registry.Get(pluginID)
+		restartCount := 0
+		if plugin != nil {
+			restartCount = plugin.RestartCount
+		}
+		s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
+			fmt.Sprintf(`{"event":"circuit_open","plugin_id":"%s","restart_count":%d,"timestamp":"%s"}`, pluginID, restartCount, time.Now().UTC().Format(time.RFC3339)),
+		))
 		return
 	}
 
-	delay := backoffDuration(count)
-	s.restartCounts[pluginID] = count + 1
-	s.lastRestart[pluginID] = time.Now()
+	// Record the restart attempt in the registry
+	newCount, err := s.registry.RecordRestartAttempt(pluginID)
+	if err != nil {
+		log.Printf("supervisor: failed to record restart attempt for %s: %v", pluginID, err)
+		return
+	}
 
-	log.Printf("supervisor: restarting plugin %s (attempt %d, backoff %v)", pluginID, count+1, delay)
+	// Get backoff duration per SPEC 08 schedule
+	delay := registry.BackoffDuration(newCount)
+
+	log.Printf("supervisor: restarting plugin %s (attempt %d, backoff %v)", pluginID, newCount, delay)
 	s.registry.UpdateState(pluginID, registry.StateStarting)
 
 	// Publish restart command
 	subject := fmt.Sprintf("kognis.plugin.%s.restart", pluginID)
-	s.bus.Publish(subject, []byte(fmt.Sprintf(`{"plugin_id":"%s","attempt":%d}`, pluginID, count+1)))
+	s.bus.Publish(subject, []byte(fmt.Sprintf(`{"plugin_id":"%s","attempt":%d,"backoff":"%s"}`, pluginID, newCount, delay)))
+
+	// Publish lifecycle event
+	s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
+		fmt.Sprintf(`{"event":"restarting","plugin_id":"%s","attempt":%d,"backoff":"%s","timestamp":"%s"}`, pluginID, newCount, delay, time.Now().UTC().Format(time.RFC3339)),
+	))
 }
 
 // shutdownAll gracefully shuts down all registered plugins.

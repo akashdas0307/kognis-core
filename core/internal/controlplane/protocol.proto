@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package controlplane;
+
+option go_package = "github.com/akashdas0307/kognis-core/core/internal/controlplane";
+
+// ControlPlane service defines the gRPC control plane interface per SPEC 04.
+// Plugins connect to this service over a Unix domain socket for lifecycle management.
+service ControlPlane {
+  // Register initiates the handshake protocol (SPEC 04 Section 4.2).
+  // Steps 1->2: Plugin sends REGISTER_REQUEST, core responds with REGISTER_ACK.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // HealthCheck queries the health status of a specific plugin (SPEC 05/18).
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // ListPlugins returns all registered plugins (SPEC 05).
+  rpc ListPlugins(ListPluginsRequest) returns (ListPluginsResponse);
+
+  // Shutdown initiates graceful shutdown of a plugin (SPEC 04 Section 4.3).
+  rpc Shutdown(ShutdownPluginRequest) returns (ShutdownPluginResponse);
+}
+
+// RegisterRequest is the initial message from a plugin during registration
+// (Step 1: REGISTER_REQUEST per SPEC 04 Section 4.2).
+message RegisterRequest {
+  string plugin_id = 1;
+  string name = 2;
+  string version = 3;
+  repeated string capabilities = 4;
+  string manifest_hash = 5;
+  repeated string emergency_bypass_types = 6;
+  int32 pid = 7;
+}
+
+// RegisterResponse is the core daemon's response to a plugin registration
+// (Step 2: REGISTER_ACK per SPEC 04 Section 4.2).
+message RegisterResponse {
+  string plugin_id = 1;
+  string plugin_id_runtime = 2;
+  string state = 3;
+  string event_bus_url = 4;
+  string event_bus_token = 5;
+  string control_plane = 6;
+  map<string, string> config_bundle = 7;
+  repeated string peer_capabilities = 8;
+  string error = 9;
+}
+
+// HealthCheckRequest queries the health status of a specific plugin.
+message HealthCheckRequest {
+  string plugin_id = 1;
+}
+
+// HealthCheckResponse contains the health status of a plugin per SPEC 18.
+message HealthCheckResponse {
+  string status = 1;  // HEALTHY|DEGRADED|ERROR|CRITICAL|UNRESPONSIVE
+  string state = 2;   // Current registry state string
+}
+
+// ListPluginsRequest is an empty request to list all registered plugins.
+message ListPluginsRequest {}
+
+// ListPluginsResponse contains all registered plugins.
+message ListPluginsResponse {
+  repeated PluginInfo plugins = 1;
+}
+
+// PluginInfo contains summary information about a registered plugin.
+message PluginInfo {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  string state = 4;
+}
+
+// ShutdownPluginRequest initiates graceful shutdown of a plugin (SPEC 04 Section 4.3).
+// Named ShutdownPluginRequest to avoid collision with the HandshakeManager's ShutdownRequest.
+message ShutdownPluginRequest {
+  string plugin_id = 1;
+  int32 grace_period_seconds = 2;
+}
+
+// ShutdownPluginResponse is the response to a shutdown request.
+message ShutdownPluginResponse {
+  bool accepted = 1;
+  string reason = 2;
+}

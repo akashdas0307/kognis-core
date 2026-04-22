@@ -11,8 +11,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"gopkg.in/yaml.v3"
 
-	"github.com/kognis-framework/kognis-core/core/internal/eventbus"
-	"github.com/kognis-framework/kognis-core/core/internal/registry"
+	"github.com/akashdas0307/kognis-core/core/internal/eventbus"
+	"github.com/akashdas0307/kognis-core/core/internal/registry"
 )
 
 // PipelineSpec describes a pipeline template loaded from YAML or JSON.
@@ -43,18 +43,20 @@ type DispatchTable map[string]map[string][]string
 
 // Router dispatches messages through pipeline slots to registered plugins.
 type Router struct {
-	mu        sync.RWMutex
-	registry  *registry.Registry
-	bus       *eventbus.Bus
-	pipelines map[string]*PipelineSpec
+	mu                sync.RWMutex
+	registry          *registry.Registry
+	bus               *eventbus.Bus
+	pipelines         map[string]*PipelineSpec
+	lastDispatchTable map[string]*CompiledDispatchTable
 }
 
 // New creates a new pipeline router.
 func New(reg *registry.Registry, bus *eventbus.Bus) *Router {
 	return &Router{
-		registry:  reg,
-		bus:       bus,
-		pipelines: make(map[string]*PipelineSpec),
+		registry:          reg,
+		bus:               bus,
+		pipelines:         make(map[string]*PipelineSpec),
+		lastDispatchTable: make(map[string]*CompiledDispatchTable),
 	}
 }
 

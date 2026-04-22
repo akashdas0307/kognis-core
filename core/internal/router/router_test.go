@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kognis-framework/kognis-core/core/internal/registry"
+	"github.com/akashdas0307/kognis-core/core/internal/registry"
 )
 
 func TestNew(t *testing.T) {

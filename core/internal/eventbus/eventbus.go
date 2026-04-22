@@ -11,7 +11,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	natsserver "github.com/nats-io/nats-server/v2/server"
-	"github.com/kognis-framework/kognis-core/core/internal/config"
+	"github.com/akashdas0307/kognis-core/core/internal/config"
 )
 
 // Bus wraps an embedded NATS server and its client connection.

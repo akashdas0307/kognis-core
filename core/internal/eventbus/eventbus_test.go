@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"github.com/kognis-framework/kognis-core/core/internal/config"
+	"github.com/akashdas0307/kognis-core/core/internal/config"
 )
 
 // newTestBus creates a Bus with a unique port for each test.
