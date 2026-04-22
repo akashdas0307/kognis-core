@@ -1,4 +1,4 @@
-module github.com/akashdas0307/kognis-core/core
+module github.com/kognis-framework/kognis-core/core
 
 go 1.22
 

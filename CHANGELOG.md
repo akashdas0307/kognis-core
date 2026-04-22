@@ -5,6 +5,24 @@ All notable changes to the Kognis Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-04-22
+
+### Added
+
+- Python SDK scaffolding: `sdk/python/pyproject.toml`, `kognis_sdk/__init__.py`, `testing/__init__.py`
+- `CONTRIBUTING.md` — contributor guidelines with workflow, branch naming, commit format
+- `SECURITY.md` — vulnerability reporting policy and security architecture principles
+- `.github/workflows/validate-docs.yaml` — CI for markdown linting, spec cross-references, YAML validation
+- `.github/workflows/lint.yaml` — CI for Go vet/golangci-lint, Python ruff/mypy, YAML yamllint
+- `.github/PULL_REQUEST_TEMPLATE.md` — standardized PR template
+- `docs/YAML_EXAMPLES.md` — canonical YAML templates for manifest, envelope, pipeline, health pulse, state broadcast, registry entry
+- `docs/FUTURE_WORK.md` — out-of-scope improvements tracking
+- `docs/COMMANDS.md` — CLI command documentation (planned commands placeholder)
+
+### Changed
+
+- Fixed Go module path: `github.com/akashdas0307/kognis-core/core` → `github.com/kognis-framework/kognis-core/core`
+
 ## [0.2.0] - 2026-04-22
 
 ### Added

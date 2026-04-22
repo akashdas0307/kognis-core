@@ -1,0 +1,63 @@
+# Build outputs
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+/bin/
+/dist/
+/build/
+
+# Go
+core/kognis
+core/kognisctl
+*.test
+*.out
+go.sum
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+*.whl
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OMC runtime state
+.omc/state/
+.omc/sessions/
+.omc/logs/
+.omc/notepad.md
+.omc/project-memory.json
+
+# Clawhip
+.clawhip/
+
+# Graphify output (regenerated)
+graphify-out/
+
+# Environment
+.env
+.env.*
+
+# Test artifacts
+coverage.xml
+htmlcov/
+.coverage

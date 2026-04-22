@@ -1,0 +1,61 @@
+name: Validate Documentation
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', '*.md']
+  pull_request:
+    branches: [main]
+    paths: ['docs/**', '*.md']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check markdown formatting
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: |
+            docs/**/*.md
+            *.md
+
+      - name: Check spec cross-references
+        run: |
+          # Verify all split spec files exist
+          for i in $(seq -w 1 18); do
+            file="docs/spec/${i}-*.md"
+            if ! compgen -G "$file" > /dev/null; then
+              echo "ERROR: Missing spec file matching $file"
+              exit 1
+            fi
+          done
+
+      - name: Check foundation cross-references
+        run: |
+          for i in $(seq -w 1 10); do
+            file="docs/foundations/${i}-*.md"
+            if ! compgen -G "$file" > /dev/null; then
+              echo "ERROR: Missing foundation file matching $file"
+              exit 1
+            fi
+          done
+
+      - name: Check YAML examples are valid
+        run: |
+          pip install pyyaml
+          python3 -c "
+          import yaml, glob, sys
+          errors = []
+          for f in glob.glob('schemas/*.yaml') + glob.glob('pipelines/*.yaml'):
+              try:
+                  with open(f) as fh:
+                      yaml.safe_load(fh)
+              except yaml.YAMLError as e:
+                  errors.append(f'{f}: {e}')
+          if errors:
+              for e in errors: print(f'ERROR: {e}')
+              sys.exit(1)
+          print('All YAML files valid')
+          "
