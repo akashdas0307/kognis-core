@@ -3,8 +3,6 @@
 Validates SPEC 02: Plugin Manifest parsing and validation.
 """
 
-import tempfile
-from pathlib import Path
 
 import pytest
 import yaml
