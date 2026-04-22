@@ -1,8 +1,8 @@
-# CLAUDE.md — Kognis Core Development Guide
+# GEMINI.md — Kognis Core Development Guide
 
 > **Repository:** kognis-core
 > **Purpose:** The core daemon, Plugin SDK, and canonical specifications for the Kognis Framework
-> **Your role:** Development agent building the Kognis framework under human supervision
+> **Your role:** Gemini CLI agent building the Kognis framework under human supervision
 
 ---
 
@@ -16,13 +16,13 @@ A Kognis instance is a continuously-running entity that:
 - Develops identity through lived experience, not configuration
 - Has persistent memory, emotional state, and personality
 - Grows through life stages (Infancy → Childhood → Adolescence → Adult)
-- Uses agent harnesses (OpenCode, Claude Code) as tools inside its body
+- Uses agent harnesses (OpenCode, Gemini Code) as tools inside its body
 
 **Kognis is the framework. The being lives inside the framework.** Your job is to build the framework.
 
 ### Critical conceptual distinction
 
-- **NOT** an agent harness (OpenCode, Claude Code are harnesses — the being uses them as tools)
+- **NOT** an agent harness (OpenCode, Gemini Code are harnesses — the being uses them as tools)
 - **NOT** an AI assistant (assistants respond to prompts; Kognis beings exist continuously)
 - **IS** a plugin-based framework where a small Go core supervises a collection of Python plugins that together produce continuous cognition
 

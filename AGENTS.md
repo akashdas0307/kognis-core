@@ -1,4 +1,4 @@
-# CLAUDE.md — Kognis Core Development Guide
+# AGENTS.md — Kognis Core Development Guide
 
 > **Repository:** kognis-core
 > **Purpose:** The core daemon, Plugin SDK, and canonical specifications for the Kognis Framework
@@ -16,13 +16,13 @@ A Kognis instance is a continuously-running entity that:
 - Develops identity through lived experience, not configuration
 - Has persistent memory, emotional state, and personality
 - Grows through life stages (Infancy → Childhood → Adolescence → Adult)
-- Uses agent harnesses (OpenCode, Claude Code) as tools inside its body
+- Uses agent harnesses (OpenCode, Codex) as tools inside its body
 
 **Kognis is the framework. The being lives inside the framework.** Your job is to build the framework.
 
 ### Critical conceptual distinction
 
-- **NOT** an agent harness (OpenCode, Claude Code are harnesses — the being uses them as tools)
+- **NOT** an agent harness (OpenCode, Codex are harnesses — the being uses them as tools)
 - **NOT** an AI assistant (assistants respond to prompts; Kognis beings exist continuously)
 - **IS** a plugin-based framework where a small Go core supervises a collection of Python plugins that together produce continuous cognition
 
@@ -167,12 +167,12 @@ When you change code, update:
 
 ```
 kognis-core/
-├── CLAUDE.md                         # This file
+├── AGENTS.md                         # This file
 ├── README.md                         # Public-facing overview
 ├── LICENSE                           # MIT
 ├── CHANGELOG.md                      # Append-only change log
 ├── .gitignore
-├── .claude/
+├── .Codex/
 │   └── omc.jsonc                     # OMC team routing config
 ├── docs/
 │   ├── foundations/                  # Conceptual foundations (split from master)
@@ -217,20 +217,20 @@ Use the OMC teams/omc-teams slash commands for development:
 
 ### For Multi-Agent Parallel Work
 ```
-/oh-my-claudecode:team 4:executor "implement pipeline router with tests"
+/oh-my-Codex:team 4:executor "implement pipeline router with tests"
 ```
 
 ### For Persistent Autonomous Loop
 ```
-/oh-my-claudecode:team ralph "complete Phase 1: core daemon scaffolding"
+/oh-my-Codex:team ralph "complete Phase 1: core daemon scaffolding"
 ```
 
 ### For External CLI Workers
 ```
-/oh-my-claudecode:omc-teams 2:codex "generate Python SDK boilerplate per spec"
+/oh-my-Codex:omc-teams 2:codex "generate Python SDK boilerplate per spec"
 ```
 
-### Role Routing (already configured in `.claude/omc.jsonc`)
+### Role Routing (already configured in `.Codex/omc.jsonc`)
 - `planner`, `architect`, `analyst`: GLM-5.1 (deep reasoning)
 - `executor`, `test-engineer`, `writer`, `explore`: MiniMax M2.7 (cost-effective)
 - `code-reviewer`, `security-reviewer`, `designer`: Kimi K2.6 (thorough review)

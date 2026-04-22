@@ -10,10 +10,10 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/akashdas0307/kognis-core/core/internal/config"
-	"github.com/akashdas0307/kognis-core/core/internal/eventbus"
-	"github.com/akashdas0307/kognis-core/core/internal/registry"
-	"github.com/akashdas0307/kognis-core/core/internal/router"
+	"github.com/kognis-framework/kognis-core/core/internal/config"
+	"github.com/kognis-framework/kognis-core/core/internal/eventbus"
+	"github.com/kognis-framework/kognis-core/core/internal/registry"
+	"github.com/kognis-framework/kognis-core/core/internal/router"
 )
 
 // Supervisor manages plugin lifecycle: registration, health monitoring, and restart.

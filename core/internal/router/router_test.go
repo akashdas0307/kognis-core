@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/akashdas0307/kognis-core/core/internal/registry"
+	"github.com/kognis-framework/kognis-core/core/internal/registry"
 )
 
 func TestNew(t *testing.T) {

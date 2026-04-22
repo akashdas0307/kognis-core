@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"git add reports/phase-4-summary.md && git commit -m \\\"$(cat <<'EOF'\\ndocs(reports): add Phase 4 Python SDK consolidated report\\n\\nHard milestone boundary report for M-001 through M-012.\\n2...",
+  "error": "Exit code 128\nwarning: could not open directory 'sdk/python/reports/': No such file or directory\nfatal: pathspec 'reports/phase-4-summary.md' did not match any files",
+  "timestamp": "2026-04-22T13:11:03.388Z",
+  "retry_count": 1
+}

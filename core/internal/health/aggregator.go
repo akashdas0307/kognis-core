@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/akashdas0307/kognis-core/core/internal/eventbus"
-	"github.com/akashdas0307/kognis-core/core/internal/registry"
+	"github.com/kognis-framework/kognis-core/core/internal/eventbus"
+	"github.com/kognis-framework/kognis-core/core/internal/registry"
 )
 
 // Pulse represents a health pulse from a plugin.

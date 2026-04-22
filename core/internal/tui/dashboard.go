@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/akashdas0307/kognis-core/core/internal/health"
-	"github.com/akashdas0307/kognis-core/core/internal/registry"
+	"github.com/kognis-framework/kognis-core/core/internal/health"
+	"github.com/kognis-framework/kognis-core/core/internal/registry"
 )
 
 // Dashboard is the terminal UI for monitoring the Kognis core daemon.

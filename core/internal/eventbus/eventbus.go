@@ -5,15 +5,17 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/nats-io/nats.go"
-	"github.com/akashdas0307/kognis-core/core/internal/config"
+	natsserver "github.com/nats-io/nats-server/v2/server"
+	"github.com/kognis-framework/kognis-core/core/internal/config"
 )
 
 // Bus wraps an embedded NATS server and its client connection.
 type Bus struct {
 	conn   *nats.Conn
-	server *nats.Server
+	server *natsserver.Server
 	cfg    config.NATSConfig
 }
 
@@ -23,14 +25,14 @@ func New(cfg config.NATSConfig) (*Bus, error) {
 		return nil, fmt.Errorf("create NATS data directory: %w", err)
 	}
 
-	opts := &nats.Options{
+	opts := &natsserver.Options{
 		ServerName: cfg.ServerName,
 		Port:       cfg.Port,
 		StoreDir:   cfg.DataDir,
 		NoLog:      true,
 	}
 
-	server, err := nats.NewServer(opts)
+	server, err := natsserver.NewServer(opts)
 	if err != nil {
 		return nil, fmt.Errorf("create NATS server: %w", err)
 	}
@@ -38,7 +40,7 @@ func New(cfg config.NATSConfig) (*Bus, error) {
 	go server.Start()
 
 	// Wait for server to be ready
-	if !server.ReadyForConnections(5 * 1e9) {
+	if !server.ReadyForConnections(5 * time.Second) {
 		server.Shutdown()
 		return nil, fmt.Errorf("NATS server did not start within timeout")
 	}
