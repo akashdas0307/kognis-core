@@ -9,9 +9,8 @@ from kognis_sdk.eventbus import (
     EventBusClient,
     EventBusConfig,
     EventBusError,
-    Subscription,
-    make_state_topic,
     make_event_topic,
+    make_state_topic,
     parse_topic,
 )
 

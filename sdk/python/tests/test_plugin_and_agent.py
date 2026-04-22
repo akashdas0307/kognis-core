@@ -5,11 +5,11 @@ Validates SPEC 02 handler_mode and SPEC 08 lifecycle.
 
 import pytest
 
-from kognis_sdk.plugin import Plugin, PluginConfig, PluginError
-from kognis_sdk.stateful_agent import StatefulAgent
 from kognis_sdk.control_plane import PluginState
-from kognis_sdk.envelope import Envelope, create_envelope
+from kognis_sdk.envelope import Envelope
 from kognis_sdk.manifest import Manifest, SlotRegistration
+from kognis_sdk.plugin import Plugin, PluginError
+from kognis_sdk.stateful_agent import StatefulAgent
 
 
 def make_manifest(handler_mode: str = "stateless") -> Manifest:

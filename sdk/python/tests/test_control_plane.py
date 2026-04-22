@@ -3,25 +3,15 @@
 Validates SPEC 04: Handshake Protocols.
 """
 
-import asyncio
 import pytest
 
 from kognis_sdk.control_plane import (
     ControlPlaneClient,
     ControlPlaneError,
-    PluginState,
-    RegisterRequest,
-    RegisterAck,
-    ReadyMessage,
     DispatchMessage,
-    DispatchAck,
-    DispatchComplete,
-    DispatchFailed,
-    CapabilityQuery,
-    CapabilityResponse,
-    Heartbeat,
-    HeartbeatAck,
-    ShutdownRequest,
+    PluginState,
+    RegisterAck,
+    RegisterRequest,
 )
 from kognis_sdk.envelope import Envelope, create_envelope
 from kognis_sdk.manifest import Manifest, SlotRegistration
