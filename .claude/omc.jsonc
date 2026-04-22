@@ -1,0 +1,74 @@
+// .claude/omc.jsonc — OMC Team Routing for Kognis Core Development
+//
+// This file configures how OMC teams delegate work across cloud models.
+// Precedence: OMC_TEAM_ROLE_OVERRIDES (env) > this file > user config > defaults
+{
+  "team": {
+    // ============================================================
+    // ROLE ROUTING
+    // Different tasks go to different models based on strengths.
+    // ============================================================
+    "roleRouting": {
+      // Orchestrator: inherits from invoking session
+      "orchestrator":  { "model": "inherit" },
+
+      // Deep reasoning — GLM-5.1 (thinking mode, 200K context)
+      "planner":       { "provider": "claude", "model": "glm-5.1:cloud" },
+      "architect":     { "provider": "claude", "model": "glm-5.1:cloud" },
+      "analyst":       { "provider": "claude", "model": "glm-5.1:cloud" },
+      "debugger":      { "provider": "claude", "model": "glm-5.1:cloud" },
+
+      // Execution — MiniMax M2.7 (cost-effective, tool calling)
+      "executor":      { "provider": "claude", "model": "minimax-m2.7:cloud" },
+      "test-engineer": { "provider": "claude", "model": "minimax-m2.7:cloud" },
+      "writer":        { "provider": "claude", "model": "minimax-m2.7:cloud" },
+      "explore":       { "provider": "claude", "model": "minimax-m2.7:cloud" },
+
+      // Review — Kimi K2.6 (256K context, thorough)
+      "code-reviewer":     { "provider": "claude", "model": "kimi-k2.6:cloud" },
+      "security-reviewer": { "provider": "claude", "model": "kimi-k2.6:cloud" },
+      "designer":          { "provider": "claude", "model": "kimi-k2.6:cloud" },
+      "critic":            { "provider": "claude", "model": "kimi-k2.6:cloud" },
+      "verifier":          { "provider": "claude", "model": "kimi-k2.6:cloud" }
+    },
+
+    // ============================================================
+    // OPERATIONAL SETTINGS
+    // ============================================================
+    "ops": {
+      "maxAgents": 15,
+      "defaultAgentType": "claude",
+      "monitorIntervalMs": 30000,
+      "shutdownTimeoutMs": 15000,
+      "maxFixLoops": 3
+    }
+  },
+
+  // ============================================================
+  // MODEL TIER DEFINITIONS
+  // ============================================================
+  "routing": {
+    "tierModels": {
+      "HIGH": "claude-opus-4-20250514",
+      "MEDIUM": "claude-sonnet-4-20250514",
+      "LOW": "claude-haiku-4-20250514"
+    }
+  },
+
+  // ============================================================
+  // PROJECT-SPECIFIC SETTINGS
+  // ============================================================
+  "project": {
+    "name": "kognis-core",
+    "build_in_public": true,
+    "auto_commit_soft_milestones": true,
+    "require_human_approval_for": [
+      "architectural_changes",
+      "tech_stack_changes",
+      "foundation_doc_changes",
+      "spec_doc_changes_beyond_formatting",
+      "new_dependencies",
+      "license_changes"
+    ]
+  }
+}
