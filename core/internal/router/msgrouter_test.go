@@ -228,7 +228,7 @@ func TestHandleACK(t *testing.T) {
 	}
 
 	mr.mu.RLock()
-	im, _ := mr.inflight["msg-001"]
+	im := mr.inflight["msg-001"]
 	mr.mu.RUnlock()
 
 	if im.Status != StatusProcessing {

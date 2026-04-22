@@ -91,9 +91,15 @@ func NewMessageRouter(rtr *Router, reg *registry.Registry, bus *eventbus.Bus) *M
 
 	// Subscribe to ACK, COMPLETE, and FAILED subjects for inflight tracking.
 	if bus != nil && bus.Conn() != nil {
-		bus.Subscribe("kognis.dispatch.ack", mr.handleACKMsg)
-		bus.Subscribe("kognis.dispatch.complete", mr.handleCompleteMsg)
-		bus.Subscribe("kognis.dispatch.failed", mr.handleFailedMsg)
+		if _, err := bus.Subscribe("kognis.dispatch.ack", mr.handleACKMsg); err != nil {
+			log.Printf("msgrouter: failed to subscribe to ack: %v", err)
+		}
+		if _, err := bus.Subscribe("kognis.dispatch.complete", mr.handleCompleteMsg); err != nil {
+			log.Printf("msgrouter: failed to subscribe to complete: %v", err)
+		}
+		if _, err := bus.Subscribe("kognis.dispatch.failed", mr.handleFailedMsg); err != nil {
+			log.Printf("msgrouter: failed to subscribe to failed: %v", err)
+		}
 	}
 
 	return mr

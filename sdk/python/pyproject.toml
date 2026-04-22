@@ -50,6 +50,9 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 "kognis_sdk/generated/**" = ["ALL"]
 "tests/**" = ["E501"]
 
+[tool.ruff.format]
+exclude = ["kognis_sdk/generated/**"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true

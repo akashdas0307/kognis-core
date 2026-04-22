@@ -58,7 +58,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("subscribe to registration events: %w", err)
 	}
-	defer sub.Unsubscribe()
+	defer func() { _ = sub.Unsubscribe() }()
 
 	// Subscribe to health pulse events
 	healthSubject := eventbus.HealthSubject(">")
@@ -68,7 +68,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("subscribe to health events: %w", err)
 	}
-	defer healthSub.Unsubscribe()
+	defer func() { _ = healthSub.Unsubscribe() }()
 
 	// Start periodic health check ticker
 	heartbeatInterval := time.Duration(s.cfg.HeartbeatIntervalSec) * time.Second
@@ -128,17 +128,23 @@ func (s *Supervisor) handleRegistration(msg *nats.Msg) {
 	log.Printf("supervisor: plugin %s (%s v%s) registered", entry.ID, entry.Name, entry.Version)
 
 	// Transition to starting state
-	s.registry.UpdateState(entry.ID, registry.StateStarting)
+	if err := s.registry.UpdateState(entry.ID, registry.StateStarting); err != nil {
+		log.Printf("supervisor: failed to update state for %s: %v", entry.ID, err)
+	}
 
 	// Publish lifecycle event
-	s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
+	if err := s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
 		fmt.Sprintf(`{"event":"registered","plugin_id":"%s","timestamp":"%s"}`, entry.ID, time.Now().UTC().Format(time.RFC3339)),
-	))
+	)); err != nil {
+		log.Printf("supervisor: failed to publish lifecycle event: %v", err)
+	}
 
 	// Acknowledge registration
 	reply := fmt.Sprintf(`{"plugin_id":"%s","state":"REGISTERED"}`, entry.ID)
 	if msg.Reply != "" {
-		s.bus.Publish(msg.Reply, []byte(reply))
+		if err := s.bus.Publish(msg.Reply, []byte(reply)); err != nil {
+			log.Printf("supervisor: failed to publish registration ack: %v", err)
+		}
 	}
 }
 
@@ -166,30 +172,38 @@ func (s *Supervisor) handleHealthPulse(msg *nats.Msg) {
 	switch pulse.Status {
 	case "HEALTHY":
 		// Record heartbeat and reset missed count (SPEC 04 Section 4.7)
-		s.registry.RecordHeartbeat(plugin.ID)
+		if err := s.registry.RecordHeartbeat(plugin.ID); err != nil {
+			log.Printf("supervisor: failed to record heartbeat for %s: %v", plugin.ID, err)
+		}
 
 		// If plugin has any restart history, reset on recovery (SPEC 08 Section 8.4).
 		// Check RestartCount > 0 rather than previous state, because the state
 		// may have already been transitioned to HEALTHY_ACTIVE before this pulse.
 		if plugin.RestartCount > 0 {
-			s.registry.ResetRestartCount(plugin.ID)
+			if err := s.registry.ResetRestartCount(plugin.ID); err != nil {
+				log.Printf("supervisor: failed to reset restart count for %s: %v", plugin.ID, err)
+			}
 			log.Printf("supervisor: plugin %s recovered, reset restart count", plugin.ID)
 
 			// Publish recovery event
-			s.bus.Publish(eventbus.HealthSubject(plugin.ID), []byte(
+			if err := s.bus.Publish(eventbus.HealthSubject(plugin.ID), []byte(
 				fmt.Sprintf(`{"event":"recovered","plugin_id":"%s","timestamp":"%s"}`, plugin.ID, time.Now().UTC().Format(time.RFC3339)),
-			))
+			)); err != nil {
+				log.Printf("supervisor: failed to publish recovery event for %s: %v", plugin.ID, err)
+			}
 		}
-		s.registry.UpdateState(plugin.ID, registry.StateHealthyActive)
+		if err := s.registry.UpdateState(plugin.ID, registry.StateHealthyActive); err != nil {
+			log.Printf("supervisor: failed to update state for %s: %v", plugin.ID, err)
+		}
 
 	case "DEGRADED":
-		s.registry.UpdateState(plugin.ID, registry.StateUnhealthy)
+		_ = s.registry.UpdateState(plugin.ID, registry.StateUnhealthy) //nolint:errcheck // best-effort state update
 	case "ERROR":
-		s.registry.UpdateState(plugin.ID, registry.StateUnhealthy)
+		_ = s.registry.UpdateState(plugin.ID, registry.StateUnhealthy) //nolint:errcheck // best-effort state update
 	case "CRITICAL":
-		s.registry.UpdateState(plugin.ID, registry.StateUnresponsive)
+		_ = s.registry.UpdateState(plugin.ID, registry.StateUnresponsive) //nolint:errcheck // best-effort state update
 	case "UNRESPONSIVE":
-		s.registry.UpdateState(plugin.ID, registry.StateUnresponsive)
+		_ = s.registry.UpdateState(plugin.ID, registry.StateUnresponsive) //nolint:errcheck // best-effort state update
 	}
 }
 
@@ -208,19 +222,23 @@ func (s *Supervisor) checkHeartbeatTimeouts() {
 		// Only transition if not already in a terminal or unresponsive state
 		if plugin.State == registry.StateHealthyActive || plugin.State == registry.StateUnhealthy {
 			log.Printf("supervisor: plugin %s missed %d heartbeats, marking UNRESPONSIVE", id, missedHeartbeatThreshold)
-			s.registry.UpdateState(id, registry.StateUnresponsive)
+			if err := s.registry.UpdateState(id, registry.StateUnresponsive); err != nil {
+				log.Printf("supervisor: failed to update state for %s: %v", id, err)
+			}
 
 			// Publish health event
-			s.bus.Publish(eventbus.HealthSubject(id), []byte(
+			if err := s.bus.Publish(eventbus.HealthSubject(id), []byte(
 				fmt.Sprintf(`{"event":"heartbeat_timeout","plugin_id":"%s","missed":%d,"timestamp":"%s"}`, id, missedHeartbeatThreshold, time.Now().UTC().Format(time.RFC3339)),
-			))
+			)); err != nil {
+				log.Printf("supervisor: failed to publish timeout event for %s: %v", id, err)
+			}
 		}
 	}
 
 	// Increment missed heartbeats for all active/unhealthy plugins
 	for _, plugin := range s.registry.List() {
 		if plugin.State == registry.StateHealthyActive || plugin.State == registry.StateUnhealthy {
-			s.registry.IncrementMissedHeartbeats(plugin.ID)
+			_, _ = s.registry.IncrementMissedHeartbeats(plugin.ID) //nolint:errcheck // best-effort increment
 		}
 	}
 }
@@ -262,7 +280,7 @@ func (s *Supervisor) restartPlugin(pluginID string) {
 	// If already at or above max, open the circuit immediately.
 	if s.registry.ShouldCircuitOpen(pluginID, s.cfg.MaxRestartAttempts) {
 		log.Printf("supervisor: plugin %s exceeded max restart attempts (%d), opening circuit breaker", pluginID, s.cfg.MaxRestartAttempts)
-		s.registry.UpdateState(pluginID, registry.StateCircuitOpen)
+		_ = s.registry.UpdateState(pluginID, registry.StateCircuitOpen) //nolint:errcheck // best-effort state update
 
 		// Publish circuit open event
 		plugin, _ := s.registry.Get(pluginID)
@@ -270,9 +288,11 @@ func (s *Supervisor) restartPlugin(pluginID string) {
 		if plugin != nil {
 			restartCount = plugin.RestartCount
 		}
-		s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
+		if err := s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
 			fmt.Sprintf(`{"event":"circuit_open","plugin_id":"%s","restart_count":%d,"timestamp":"%s"}`, pluginID, restartCount, time.Now().UTC().Format(time.RFC3339)),
-		))
+		)); err != nil {
+			log.Printf("supervisor: failed to publish circuit open event: %v", err)
+		}
 		return
 	}
 
@@ -287,7 +307,7 @@ func (s *Supervisor) restartPlugin(pluginID string) {
 	delay := registry.BackoffDuration(newCount)
 
 	log.Printf("supervisor: restarting plugin %s (attempt %d, backoff %v)", pluginID, newCount, delay)
-	s.registry.UpdateState(pluginID, registry.StateStarting)
+	_ = s.registry.UpdateState(pluginID, registry.StateStarting) //nolint:errcheck // best-effort state update
 
 	// If the plugin has an entrypoint defined, spawn a new process.
 	if plugin, ok := s.registry.Get(pluginID); ok && plugin.Entrypoint != "" {
@@ -303,12 +323,16 @@ func (s *Supervisor) restartPlugin(pluginID string) {
 
 	// Publish restart command
 	subject := fmt.Sprintf("kognis.plugin.%s.restart", pluginID)
-	s.bus.Publish(subject, []byte(fmt.Sprintf(`{"plugin_id":"%s","attempt":%d,"backoff":"%s"}`, pluginID, newCount, delay)))
+	if err := s.bus.Publish(subject, []byte(fmt.Sprintf(`{"plugin_id":"%s","attempt":%d,"backoff":"%s"}`, pluginID, newCount, delay))); err != nil {
+		log.Printf("supervisor: failed to publish restart command: %v", err)
+	}
 
 	// Publish lifecycle event
-	s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
+	if err := s.bus.Publish(eventbus.PluginLifecycleSubject(), []byte(
 		fmt.Sprintf(`{"event":"restarting","plugin_id":"%s","attempt":%d,"backoff":"%s","timestamp":"%s"}`, pluginID, newCount, delay, time.Now().UTC().Format(time.RFC3339)),
-	))
+	)); err != nil {
+		log.Printf("supervisor: failed to publish restarting event: %v", err)
+	}
 }
 
 // shutdownAll gracefully shuts down all registered plugins.
@@ -319,11 +343,13 @@ func (s *Supervisor) shutdownAll() {
 	gracePeriod := time.Duration(s.cfg.ShutdownGracePeriodSec) * time.Second
 
 	for _, plugin := range s.registry.List() {
-		s.registry.UpdateState(plugin.ID, registry.StateShuttingDown)
+		_ = s.registry.UpdateState(plugin.ID, registry.StateShuttingDown) //nolint:errcheck // best-effort state update
 		log.Printf("supervisor: sending shutdown to plugin %s", plugin.ID)
 
 		subject := fmt.Sprintf("kognis.plugin.%s.shutdown", plugin.ID)
-		s.bus.Publish(subject, []byte(fmt.Sprintf(`{"plugin_id":"%s","grace_period":"%s"}`, plugin.ID, gracePeriod)))
+		if err := s.bus.Publish(subject, []byte(fmt.Sprintf(`{"plugin_id":"%s","grace_period":"%s"}`, plugin.ID, gracePeriod))); err != nil {
+			log.Printf("supervisor: failed to publish shutdown command for %s: %v", plugin.ID, err)
+		}
 	}
 
 	// Allow grace period for plugins to shut down
@@ -332,7 +358,7 @@ func (s *Supervisor) shutdownAll() {
 	// Mark remaining plugins as shut down
 	for _, plugin := range s.registry.List() {
 		if plugin.State != registry.StateShutDown {
-			s.registry.UpdateState(plugin.ID, registry.StateShutDown)
+			_ = s.registry.UpdateState(plugin.ID, registry.StateShutDown) //nolint:errcheck // best-effort state update
 		}
 	}
 }

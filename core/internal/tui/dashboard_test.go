@@ -118,7 +118,7 @@ func TestModelPanelSwitching(t *testing.T) {
 	}
 
 	// Test Tab cycles through panels
-	updated, _ = m.Update(tea.KeyMsg{})
+	_, _ = m.Update(tea.KeyMsg{})
 	// With bubbletea v1, KeyMsg handling uses msg.String().
 	// We'll test the internal panel switching logic directly instead.
 
@@ -222,7 +222,7 @@ func TestModelTick(t *testing.T) {
 
 	m := newModel(reg, agg)
 	updated, cmd := m.Update(tickMsg(time.Now()))
-	m = updated.(model)
+	_ = updated.(model)
 
 	if cmd == nil {
 		t.Error("expected tick command to schedule next tick")

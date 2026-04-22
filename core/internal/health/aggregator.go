@@ -120,7 +120,7 @@ func (a *Aggregator) RecordPulse(pulse *Pulse) {
 		} else if prevStatus != "" && prevStatus != pulse.Status {
 			// Publish state change when the pulse status actually changes.
 			// PublishState internally skips when old and new state values are equal.
-			a.bus.PublishState(pluginID, "health_status", prevState, newState)
+			a.bus.PublishState(pluginID, "health_status", prevState, newState) //nolint:errcheck // state change publish is best-effort
 		}
 	}
 }

@@ -67,7 +67,7 @@ func New(socketPath string, opts ...ServerOption) (*Server, error) {
 
 	// Remove existing socket file
 	if _, err := os.Stat(socketPath); err == nil {
-		os.Remove(socketPath)
+		_ = os.Remove(socketPath)
 	}
 
 	listener, err := net.Listen("unix", socketPath)
@@ -125,6 +125,6 @@ func (s *Server) Close() {
 		s.server.GracefulStop()
 	}
 	if s.socket != "" {
-		os.Remove(s.socket)
+		_ = os.Remove(s.socket)
 	}
 }

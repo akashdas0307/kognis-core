@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,8 +14,6 @@ import (
 	"github.com/akashdas0307/kognis-core/core/internal/registry"
 )
 
-// testPortCounter ensures each test bus gets a unique port to avoid conflicts.
-var testPortCounter atomic.Int64
 
 // findFreePort returns a currently available TCP port number.
 func findFreePort() int {
