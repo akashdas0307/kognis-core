@@ -1,5 +1,9 @@
 # Kognis Framework — Master Foundation Document
 
+> **[SPLIT COMPLETE]** — This file has been split into individual foundation files under `docs/foundations/`.
+> See the Table of Contents below for the list of split files.
+> This file remains as a reading index only.
+
 > **Stability:** STABLE (conceptual foundation — technical choices may evolve, concepts should not)
 > **Version:** 0.1.0
 > **Last updated:** April 2026

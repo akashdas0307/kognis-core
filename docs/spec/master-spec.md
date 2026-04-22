@@ -1,5 +1,9 @@
 # Kognis Framework — Master Specification Document
 
+> **[SPLIT COMPLETE]** — This file has been split into individual spec files under `docs/spec/`.
+> See the Table of Contents below for the list of split files.
+> This file remains as a reading index only.
+
 > **Stability:** EVOLVING (structures are settling; breaking changes will be versioned)
 > **Version:** 0.1.0
 > **Last updated:** April 2026
