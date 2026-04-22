@@ -1,0 +1,157 @@
+# Schema: envelope-v1
+# Source: docs/spec/01-message-envelope.md
+# Version: 1
+# Description: Schema for Kognis message envelopes — the universal data format
+
+api_version: 1
+description: "Schema for Kognis message envelopes — the universal data format"
+schema_name: envelope
+schema_version: 1
+
+fields:
+  # Schema version
+  envelope_version:
+    type: integer
+    required: true
+    description: "Envelope schema version"
+    default: 1
+
+  # Identity fields
+  id:
+    type: string
+    required: true
+    description: "Unique message ID (UUID v4)"
+
+  created_at:
+    type: string
+    required: true
+    description: "ISO 8601 timestamp"
+
+  origin_plugin:
+    type: string
+    required: true
+    description: "Plugin ID that created this envelope"
+
+  message_type:
+    type: string
+    required: true
+    description: "Message type identifier"
+    known_values:
+      - "user_text_input"
+      - "voice_input"
+      - "ambient_audio"
+      - "visual_frame"
+      - "assistant_response"
+      - "action_request"
+      - "action_result"
+      - "wake_up_handoff"
+      - "daydream_seed"
+      - "eal_escalation"
+      - "internal_trigger"
+      - "health_alert"
+
+  # Payload
+  payload:
+    type: object
+    required: true
+    description: "Plugin-defined content, structure depends on message_type"
+
+  # Routing state
+  routing:
+    type: object
+    required: true
+    fields:
+      pipeline:
+        type: string
+        required: true
+        description: "Pipeline template ID"
+      completed_stages:
+        type: array
+        required: true
+        description: "Stages already processed"
+        items: string
+      current_stage:
+        type: string
+        required: false
+        nullable: true
+        description: "Stage currently dispatched"
+      failed_stages:
+        type: array
+        required: true
+        description: "Stages that failed with reason"
+        items:
+          stage: string
+          reason: string
+      hop_count:
+        type: integer
+        required: true
+        description: "Increments on each dispatch (max 20 default)"
+        default: 0
+      entry_slot:
+        type: string
+        required: true
+        description: "Which slot this envelope entered at"
+
+  # Enrichments — additive, never overwrites
+  enrichments:
+    type: object
+    required: false
+    description: "Additive enrichment data from plugins"
+    fields:
+      environment:
+        type: object
+        required: false
+        nullable: true
+        description: "Added by EAL"
+      context:
+        type: object
+        required: false
+        nullable: true
+        description: "Added by Prajna TLP"
+      memory:
+        type: object
+        required: false
+        nullable: true
+        description: "Added by Memory"
+
+  # Metadata
+  metadata:
+    type: object
+    required: true
+    fields:
+      priority:
+        type: string
+        required: true
+        description: "Processing priority"
+        enum: ["tier_1_immediate", "tier_2_elevated", "tier_3_normal"]
+      trust_level:
+        type: string
+        required: true
+        description: "Source trust level"
+        enum: ["tier_1_creator", "tier_2_trusted", "tier_3_external", "internal"]
+      trace_id:
+        type: string
+        required: true
+        description: "For distributed tracing"
+      revision_count:
+        type: integer
+        required: true
+        description: "For action_review revision loops"
+        default: 0
+      parent_envelope_id:
+        type: string
+        required: false
+        nullable: true
+        description: "If derived from another envelope"
+      correlation_id:
+        type: string
+        required: false
+        nullable: true
+        description: "For request-response pairing"
+
+constraints:
+  - "Envelopes are immutable once dispatched to a slot"
+  - "Enrichments are additive only — plugins add to their own namespace"
+  - "hop_count enforced by router — max 20, then dead-lettered with loop_detected"
+  - "revision_count incremented ONLY by action_review slot — max 3"
+  - "Payload serialization: JSON with optional binary refs"

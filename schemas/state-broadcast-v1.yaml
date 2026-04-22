@@ -1,0 +1,92 @@
+# Schema: state-broadcast-v1
+# Source: docs/spec/06-state-broadcast.md
+# Version: 1
+# Description: Schema for Kognis semantic state broadcasts
+
+api_version: 1
+description: "Schema for Kognis semantic state broadcasts"
+schema_name: state_broadcast
+schema_version: 1
+
+fields:
+  # State broadcast payload
+  plugin_id:
+    type: string
+    required: true
+    description: "Plugin publishing the state change"
+
+  timestamp:
+    type: string
+    required: true
+    description: "ISO 8601 timestamp of state change"
+
+  state_name:
+    type: string
+    required: true
+    description: "Name of the state that changed"
+    example: "activity_state"
+
+  previous_value:
+    type: string
+    required: false
+    nullable: true
+    description: "Previous state value"
+
+  new_value:
+    type: string
+    required: true
+    description: "New state value"
+
+  details:
+    type: object
+    required: false
+    description: "Additional context about the state change"
+
+transport:
+  protocol: "NATS pub/sub"
+  topic_pattern: "state.<plugin_id>.<state_name>"
+  examples:
+    - topic: "state.cognitive_core.activity_state"
+      publisher: "Cognitive Core"
+      subscribers: ["Queue Zone", "EAL", "Health"]
+    - topic: "state.persona.emotional_state"
+      publisher: "Persona"
+      subscribers: ["Cognitive Core", "dashboard"]
+    - topic: "state.system.stage"
+      publisher: "Core daemon"
+      subscribers: ["All plugins"]
+    - topic: "state.eal.monitoring_mode"
+      publisher: "EAL"
+      subscribers: ["Thalamus", "dashboard"]
+    - topic: "state.memory.consolidation_status"
+      publisher: "Memory"
+      subscribers: ["Cognitive Core", "Sleep/Dream"]
+
+manifest_declaration:
+  description: "Plugins declare state broadcasts in their manifest"
+  fields:
+    state_name:
+      type: string
+      required: true
+    values:
+      type: array
+      required: true
+      description: "All possible state values"
+    change_topic:
+      type: string
+      required: true
+      description: "NATS topic for this state"
+
+differences_from_health_pulse:
+  health_pulse:
+    purpose: "Technical health of plugin"
+    frequency: "Every N seconds constantly"
+    audience: "System Health, dashboard"
+    content: "Metrics, error counts"
+    volume: "High"
+  state_broadcast:
+    purpose: "Semantic state of being"
+    frequency: "On change only"
+    audience: "Subscribers based on need"
+    content: "What plugin is doing semantically"
+    volume: "Low"

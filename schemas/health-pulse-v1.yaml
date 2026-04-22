@@ -1,0 +1,95 @@
+# Schema: health-pulse-v1
+# Source: docs/spec/18-health-pulse-schema.md
+# Version: 1
+# Description: Schema for Kognis plugin health pulses
+
+api_version: 1
+description: "Schema for Kognis plugin health pulses"
+schema_name: health_pulse
+schema_version: 1
+
+fields:
+  health_pulse:
+    type: object
+    required: true
+    fields:
+      plugin_id:
+        type: string
+        required: true
+        description: "Plugin identifier"
+
+      timestamp:
+        type: string
+        required: true
+        description: "ISO 8601 timestamp of this pulse"
+
+      status:
+        type: string
+        required: true
+        description: "Current health status"
+        enum: ["HEALTHY", "DEGRADED", "ERROR", "CRITICAL", "UNRESPONSIVE"]
+
+      metrics:
+        type: object
+        required: true
+        description: "Plugin-specific metrics defined in manifest"
+        fields:
+          queue_depth:
+            type: integer
+            required: false
+            description: "Number of pending messages"
+          processing_latency_p50_ms:
+            type: number
+            required: false
+            description: "Median processing latency"
+          processing_latency_p99_ms:
+            type: number
+            required: false
+            description: "P99 processing latency"
+          error_count_last_60s:
+            type: integer
+            required: false
+            description: "Errors in last 60 seconds"
+          memory_usage_mb:
+            type: number
+            required: false
+            description: "Current memory usage in MB"
+
+      current_activity:
+        type: string
+        required: false
+        description: "Brief description of current activity"
+
+      last_dispatch_at:
+        type: string
+        required: false
+        nullable: true
+        description: "ISO 8601 timestamp of last dispatch"
+
+      alerts:
+        type: array
+        required: false
+        description: "Active alerts"
+        items:
+          severity:
+            type: string
+            required: true
+            enum: ["warning", "error", "critical"]
+          code:
+            type: string
+            required: true
+            description: "Error code from error taxonomy"
+          message:
+            type: string
+            required: true
+            description: "Human-readable alert message"
+
+aggregation:
+  description: "Core aggregates pulses into Health Registry"
+  storage:
+    last_n_pulses: 100
+    current_status: true
+    metric_time_series: "short window"
+    derived_metrics:
+      - "uptime_percentage"
+      - "error_rate"

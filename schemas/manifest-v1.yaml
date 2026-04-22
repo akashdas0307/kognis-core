@@ -1,0 +1,279 @@
+# Schema: manifest-v1
+# Source: docs/spec/02-plugin-manifest.md
+# Version: 1
+# Description: Schema for Kognis plugin manifest files (plugin.yaml)
+
+api_version: 1
+description: "Schema for Kognis plugin manifest files (plugin.yaml)"
+schema_name: manifest
+schema_version: 1
+
+fields:
+  # Identity
+  manifest_version:
+    type: integer
+    required: true
+    description: "Manifest schema version"
+    default: 1
+
+  plugin_id:
+    type: string
+    required: true
+    description: "Unique identifier (lowercase-hyphenated or reverse-domain)"
+    example: "com.kognis.prajna"
+
+  plugin_name:
+    type: string
+    required: true
+    description: "Human-readable plugin name"
+    example: "Prajna"
+
+  version:
+    type: string
+    required: true
+    description: "Semantic version"
+    example: "0.1.0"
+
+  author:
+    type: string
+    required: true
+    description: "Author/maintainer"
+
+  license:
+    type: string
+    required: true
+    description: "SPDX license identifier"
+    example: "MIT"
+
+  description:
+    type: string
+    required: true
+    description: "Brief description of plugin purpose"
+
+  # Runtime
+  language:
+    type: string
+    required: true
+    description: "Plugin language"
+    enum: ["python", "go", "node", "other"]
+
+  runtime:
+    type: object
+    required: true
+    fields:
+      entrypoint:
+        type: string
+        required: true
+        description: "How to start the plugin"
+        example: "python -m kognis_prajna"
+      working_directory:
+        type: string
+        required: false
+        description: "Relative to plugin root"
+      environment_requirements:
+        type: object
+        required: false
+        fields:
+          python_version:
+            type: string
+            description: "Required Python version (if language is python)"
+          system_packages:
+            type: array
+            description: "OS-level dependencies"
+          external_commands:
+            type: array
+            description: "Binaries that must be on PATH"
+
+  # SDK compatibility
+  sdk:
+    type: object
+    required: false
+    fields:
+      required_version:
+        type: string
+        description: "Required SDK version range"
+        example: ">=0.1.0"
+      manifest_schema:
+        type: integer
+        description: "This manifest's schema version"
+
+  # Handler mode
+  handler_mode:
+    type: string
+    required: true
+    description: "Plugin execution mode"
+    enum: ["stateless", "stateful_agent"]
+
+  # Slot registrations
+  slot_registrations:
+    type: array
+    required: true
+    items:
+      pipeline:
+        type: string
+        required: true
+        description: "Pipeline template ID"
+      slot:
+        type: string
+        required: true
+        description: "Slot name within that pipeline"
+      priority:
+        type: integer
+        required: true
+        description: "Lower runs first (0-100)"
+      message_types_handled:
+        type: array
+        required: false
+        description: "Which message_types this plugin processes"
+      message_types_produced:
+        type: array
+        required: false
+        description: "What message types this plugin might emit"
+      timeout_seconds:
+        type: integer
+        required: false
+        description: "Max processing time"
+      retry_attempts:
+        type: integer
+        required: false
+        description: "On failure retry count"
+      optional:
+        type: boolean
+        required: false
+        description: "Can pipeline run without this plugin"
+        default: false
+      max_concurrent:
+        type: integer
+        required: false
+        description: "Parallel dispatches allowed"
+
+  # Capabilities provided
+  provides_capabilities:
+    type: array
+    required: false
+    items:
+      capability_id:
+        type: string
+        required: true
+        description: "e.g., memory.retrieve_episodes"
+      description:
+        type: string
+        required: true
+      params_schema:
+        type: object
+        required: false
+        description: "JSON schema for parameters"
+      response_schema:
+        type: object
+        required: false
+        description: "JSON schema for response"
+      latency_class:
+        type: string
+        required: false
+        enum: ["fast", "medium", "slow"]
+      llm_tool_description:
+        type: string
+        required: false
+        description: "For Tool Bridge exposure"
+      llm_tool_expose_to:
+        type: array
+        required: false
+        description: "Which plugins' LLMs see this as a tool"
+      authentication_required:
+        type: boolean
+        required: false
+        default: false
+
+  # Capabilities required from others
+  requires_capabilities:
+    type: array
+    required: false
+    items:
+      capability_id:
+        type: string
+        required: true
+      optional:
+        type: boolean
+        required: false
+        description: "Plugin can run without this capability"
+
+  # Event subscriptions
+  event_subscriptions:
+    type: array
+    required: false
+    items:
+      topic:
+        type: string
+        required: true
+        description: "NATS topic pattern"
+      handler:
+        type: string
+        required: true
+        description: "Handler function name"
+
+  # Event publications
+  event_publications:
+    type: array
+    required: false
+    items:
+      topic:
+        type: string
+        required: true
+        description: "NATS topic this plugin publishes to"
+
+  # State broadcasts
+  state_broadcasts:
+    type: array
+    required: false
+    items:
+      state_name:
+        type: string
+        required: true
+      values:
+        type: array
+        required: true
+        description: "Possible state values"
+      change_topic:
+        type: string
+        required: true
+        description: "NATS topic for state changes"
+
+  # Permissions
+  permissions:
+    type: array
+    required: true
+    items:
+      type: string
+    description: "Requested permissions (event_bus:publish, capability:query:*, etc.)"
+
+  # Lifecycle
+  lifecycle:
+    type: object
+    required: false
+    fields:
+      startup_order:
+        type: integer
+        description: "Startup priority (lower = earlier)"
+      health_pulse_interval:
+        type: integer
+        description: "Seconds between health pulses"
+      state_broadcast:
+        type: boolean
+        description: "Whether plugin publishes state changes"
+        default: false
+      sleep_behavior:
+        type: string
+        enum: ["active", "suspend", "reduced"]
+        description: "How plugin behaves during system sleep"
+
+  # UI
+  ui:
+    type: object
+    required: false
+    fields:
+      has_dashboard:
+        type: boolean
+        default: false
+      has_settings:
+        type: boolean
+        default: false

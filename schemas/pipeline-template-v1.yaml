@@ -1,0 +1,109 @@
+# Schema: pipeline-template-v1
+# Source: docs/spec/03-pipeline-templates.md
+# Version: 1
+# Description: Schema for Kognis pipeline template definitions
+
+api_version: 1
+description: "Schema for Kognis pipeline template definitions"
+schema_name: pipeline_template
+schema_version: 1
+
+fields:
+  # Identity
+  pipeline_version:
+    type: integer
+    required: true
+    description: "Pipeline template schema version"
+    default: 1
+
+  pipeline_id:
+    type: string
+    required: true
+    description: "Unique pipeline identifier"
+    example: "user_text_interaction"
+
+  description:
+    type: string
+    required: true
+    description: "What this pipeline does"
+
+  # Message types
+  accepted_message_types:
+    type: array
+    required: true
+    description: "Message types that can enter this pipeline"
+    items: string
+
+  # Slots
+  slots:
+    type: array
+    required: true
+    description: "Ordered slots that messages flow through"
+    items:
+      slot_id:
+        type: string
+        required: true
+        description: "Unique slot name within pipeline"
+      required:
+        type: boolean
+        required: true
+        description: "Must have at least one plugin registered"
+      allows_multiple_plugins:
+        type: boolean
+        required: false
+        default: true
+        description: "Can multiple plugins register for this slot"
+      execution_mode:
+        type: string
+        required: false
+        enum: ["sequential_by_priority", "parallel", "by_action_type", "by_channel_match"]
+        description: "How multiple plugins in this slot are executed"
+      valid_entry_point:
+        type: boolean
+        required: false
+        default: false
+        description: "Can envelope enter pipeline at this slot"
+      timeout_seconds:
+        type: integer
+        required: false
+        description: "Total time budget for this slot"
+      on_empty:
+        type: string
+        required: false
+        enum: ["skip", "fail", "buffer"]
+        description: "What to do when no plugins registered for required slot"
+      on_all_failed:
+        type: string
+        required: false
+        enum: ["skip", "fail", "retry"]
+        description: "What to do when all plugins in slot fail"
+
+  # Error handling
+  error_handling:
+    type: object
+    required: false
+    fields:
+      on_slot_failure:
+        type: string
+        description: "Default behavior on slot failure"
+        enum: ["skip_and_log", "fail", "retry"]
+      on_pipeline_failure:
+        type: string
+        description: "Default behavior on pipeline failure"
+        enum: ["notify_and_queue", "dead_letter", "retry"]
+      max_revisions:
+        type: integer
+        description: "Max action_review revision loops"
+        default: 3
+
+  # Timeouts
+  timeout:
+    type: object
+    required: false
+    fields:
+      slot_timeout:
+        type: string
+        description: "Default per-slot timeout (e.g., 30s)"
+      pipeline_timeout:
+        type: string
+        description: "Total pipeline timeout (e.g., 120s)"
