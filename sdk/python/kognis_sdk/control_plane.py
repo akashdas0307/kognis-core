@@ -45,6 +45,7 @@ class DispatchStatus(Enum):
 @dataclass
 class RegisterRequest:
     """Step 1 of registration handshake."""
+
     manifest: Manifest
     pid: int
     version: str = "0.1.0"
@@ -65,6 +66,7 @@ class RegisterRequest:
 @dataclass
 class RegisterAck:
     """Step 2 of registration handshake — core's response."""
+
     plugin_id_runtime: str
     event_bus_token: str
     event_bus_url: str = ""
@@ -75,6 +77,7 @@ class RegisterAck:
 @dataclass
 class ReadyMessage:
     """Step 3 — plugin confirms ready after connecting to event bus."""
+
     subscribed_topics: list[str]
     health_endpoint: str = ""
 
@@ -82,6 +85,7 @@ class ReadyMessage:
 @dataclass
 class DispatchMessage:
     """Core dispatches an envelope to a plugin."""
+
     msg_id: str
     envelope: Envelope
     deadline_ms: int
@@ -91,6 +95,7 @@ class DispatchMessage:
 @dataclass
 class DispatchAck:
     """Plugin acknowledges receipt of dispatch."""
+
     msg_id: str
     received_at: str
     estimated_processing_ms: int = 0
@@ -99,6 +104,7 @@ class DispatchAck:
 @dataclass
 class DispatchComplete:
     """Plugin reports successful dispatch completion."""
+
     msg_id: str
     result_envelope: Envelope
     processing_duration_ms: int
@@ -107,6 +113,7 @@ class DispatchComplete:
 @dataclass
 class DispatchFailed:
     """Plugin reports dispatch failure."""
+
     msg_id: str
     error_code: str
     retry_safe: bool = False
@@ -115,6 +122,7 @@ class DispatchFailed:
 @dataclass
 class CapabilityQuery:
     """Double handshake step 1 — plugin requests a capability."""
+
     target_capability: str
     params: dict[str, Any] = field(default_factory=dict)
     await_response: bool = True
@@ -124,6 +132,7 @@ class CapabilityQuery:
 @dataclass
 class CapabilityResponse:
     """Double handshake result — capability execution result."""
+
     query_id: str
     result: dict[str, Any]
     correlation_id: str = ""
@@ -132,12 +141,14 @@ class CapabilityResponse:
 @dataclass
 class ShutdownRequest:
     """Core requests plugin shutdown."""
+
     grace_period_seconds: int = 30
 
 
 @dataclass
 class Heartbeat:
     """Bidirectional heartbeat message."""
+
     plugin_id: str
     timestamp: str
     metrics: dict[str, Any] = field(default_factory=dict)
@@ -147,6 +158,7 @@ class Heartbeat:
 @dataclass
 class HeartbeatAck:
     """Core acknowledges heartbeat."""
+
     server_time: str
 
 
@@ -223,9 +235,9 @@ class ControlPlaneClient:
             name=manifest.plugin_name,
             version=manifest.version,
             capabilities=[s.slot for s in manifest.slot_registrations],
-            manifest_hash="", # To be implemented
+            manifest_hash="",  # To be implemented
             pid=pid,
-            entrypoint=entrypoint
+            entrypoint=entrypoint,
         )
 
         try:
@@ -239,7 +251,7 @@ class ControlPlaneClient:
                 plugin_id_runtime=response.plugin_id_runtime,
                 event_bus_token=response.event_bus_token,
                 config_bundle=dict(response.config_bundle),
-                peer_capabilities_snapshot={} # Proto doesn't have this yet in detail
+                peer_capabilities_snapshot={},  # Proto doesn't have this yet in detail
             )
             self.plugin_id = manifest.plugin_id
             self.plugin_id_runtime = ack.plugin_id_runtime
@@ -318,6 +330,7 @@ class ControlPlaneClient:
         Spec reference: SPEC 04 Section 4.7
         """
         from datetime import datetime
+
         hb = Heartbeat(
             plugin_id=self.plugin_id_runtime,
             timestamp=datetime.now(UTC).isoformat(),

@@ -34,17 +34,21 @@ class TestCapabilityRegistryClient:
 
     @pytest.mark.asyncio
     async def test_is_available_with_cache(self):
-        self.client.update_cache([
-            RegistryEntry(capability_id="cap1", providing_plugins=["p1"]),
-        ])
+        self.client.update_cache(
+            [
+                RegistryEntry(capability_id="cap1", providing_plugins=["p1"]),
+            ]
+        )
         result = await self.client.is_available("cap1")
         assert result is True
 
     @pytest.mark.asyncio
     async def test_find_providers(self):
-        self.client.update_cache([
-            RegistryEntry(capability_id="cap1", providing_plugins=["p1", "p2"]),
-        ])
+        self.client.update_cache(
+            [
+                RegistryEntry(capability_id="cap1", providing_plugins=["p1", "p2"]),
+            ]
+        )
         providers = await self.client.find_providers("cap1")
         assert "p1" in providers
 
@@ -55,9 +59,15 @@ class TestCapabilityRegistryClient:
 
     @pytest.mark.asyncio
     async def test_get_schema(self):
-        self.client.update_cache([
-            RegistryEntry(capability_id="cap1", params_schema={"type": "object"}, response_schema={"type": "object"}),
-        ])
+        self.client.update_cache(
+            [
+                RegistryEntry(
+                    capability_id="cap1",
+                    params_schema={"type": "object"},
+                    response_schema={"type": "object"},
+                ),
+            ]
+        )
         schema = await self.client.get_schema("cap1")
         assert schema is not None
         assert "params_schema" in schema
@@ -69,26 +79,30 @@ class TestCapabilityRegistryClient:
 
     @pytest.mark.asyncio
     async def test_list_for_llm(self):
-        self.client.update_cache([
-            RegistryEntry(
-                capability_id="cap1",
-                llm_exposed_to=["cognitive_core"],
-                params_schema={"type": "object", "properties": {"q": {"type": "string"}}},
-            ),
-            RegistryEntry(
-                capability_id="cap2",
-                llm_exposed_to=["other_plugin"],
-            ),
-        ])
+        self.client.update_cache(
+            [
+                RegistryEntry(
+                    capability_id="cap1",
+                    llm_exposed_to=["cognitive_core"],
+                    params_schema={"type": "object", "properties": {"q": {"type": "string"}}},
+                ),
+                RegistryEntry(
+                    capability_id="cap2",
+                    llm_exposed_to=["other_plugin"],
+                ),
+            ]
+        )
         tools = await self.client.list_for_llm("cognitive_core")
         assert len(tools) == 1
         assert tools[0]["name"] == "cap1"
 
     @pytest.mark.asyncio
     async def test_list_for_llm_unavailable(self):
-        self.client.update_cache([
-            RegistryEntry(capability_id="cap1", llm_exposed_to=["p"], status="unavailable"),
-        ])
+        self.client.update_cache(
+            [
+                RegistryEntry(capability_id="cap1", llm_exposed_to=["p"], status="unavailable"),
+            ]
+        )
         tools = await self.client.list_for_llm("p")
         assert tools == []
 
@@ -113,13 +127,15 @@ class TestToolBridge:
 
     @pytest.mark.asyncio
     async def test_assemble_tools(self):
-        self.cap_client.update_cache([
-            RegistryEntry(
-                capability_id="memory.retrieve",
-                llm_exposed_to=["test_plugin"],
-                params_schema={"type": "object"},
-            ),
-        ])
+        self.cap_client.update_cache(
+            [
+                RegistryEntry(
+                    capability_id="memory.retrieve",
+                    llm_exposed_to=["test_plugin"],
+                    params_schema={"type": "object"},
+                ),
+            ]
+        )
         tools = await self.bridge.assemble_tools()
         assert len(tools) == 1
         assert tools[0].name == "memory.retrieve"
@@ -137,9 +153,11 @@ class TestToolBridge:
 
     @pytest.mark.asyncio
     async def test_refresh_tools(self):
-        self.cap_client.update_cache([
-            RegistryEntry(capability_id="cap1", llm_exposed_to=["test_plugin"]),
-        ])
+        self.cap_client.update_cache(
+            [
+                RegistryEntry(capability_id="cap1", llm_exposed_to=["test_plugin"]),
+            ]
+        )
         tools = await self.bridge.refresh_tools()
         assert len(tools) == 1
 
@@ -148,9 +166,16 @@ class TestToolBridge:
         # Control plane must be in HEALTHY_ACTIVE state for capability queries
         await self.cap_client.control_plane.connect()
         from kognis_sdk.manifest import Manifest, SlotRegistration
+
         m = Manifest(
-            manifest_version=1, plugin_id="test", plugin_name="t", version="1",
-            author="a", license="MIT", description="d", language="python",
+            manifest_version=1,
+            plugin_id="test",
+            plugin_name="t",
+            version="1",
+            author="a",
+            license="MIT",
+            description="d",
+            language="python",
             runtime=type("R", (), {"entrypoint": "x.py"})(),
             handler_mode="stateless",
             slot_registrations=[SlotRegistration(pipeline="p", slot="s", priority=50)],
@@ -158,9 +183,11 @@ class TestToolBridge:
         await self.cap_client.control_plane.register(m, pid=1)
         await self.cap_client.control_plane.send_ready(subscribed_topics=[])
 
-        self.cap_client.update_cache([
-            RegistryEntry(capability_id="cap1", status="available"),
-        ])
+        self.cap_client.update_cache(
+            [
+                RegistryEntry(capability_id="cap1", status="available"),
+            ]
+        )
         blocks = [ToolUseBlock(id="tu1", name="cap1", params={"q": "test"})]
         results = await self.bridge.handle_tool_uses(blocks)
         assert len(results) == 1
@@ -169,7 +196,9 @@ class TestToolBridge:
 
 class TestContextBlock:
     def test_estimate_tokens_explicit(self):
-        block = ContextBlock(name="test", content="hello", priority=PriorityTier.MUST, token_count=10)
+        block = ContextBlock(
+            name="test", content="hello", priority=PriorityTier.MUST, token_count=10
+        )
         assert block.estimate_tokens() == 10
 
     def test_estimate_tokens_from_content(self):
@@ -180,22 +209,34 @@ class TestContextBlock:
 
 class TestContextBudgetManager:
     def test_calculate_budget(self):
-        mgr = ContextBudgetManager(BudgetConfig(model_context_window=128000, output_budget=4000, safety_margin=500))
+        mgr = ContextBudgetManager(
+            BudgetConfig(model_context_window=128000, output_budget=4000, safety_margin=500)
+        )
         budget = mgr.calculate_available_budget()
         assert budget == 123500
 
     def test_assemble_within_budget(self):
-        mgr = ContextBudgetManager(BudgetConfig(model_context_window=1000, output_budget=100, safety_margin=50))
+        mgr = ContextBudgetManager(
+            BudgetConfig(model_context_window=1000, output_budget=100, safety_margin=50)
+        )
         blocks = [
-            ContextBlock(name="identity", content="a" * 100, priority=PriorityTier.MUST, token_count=50),
-            ContextBlock(name="input", content="b" * 100, priority=PriorityTier.HIGH, token_count=50),
-            ContextBlock(name="memory", content="c" * 100, priority=PriorityTier.LOW, token_count=50),
+            ContextBlock(
+                name="identity", content="a" * 100, priority=PriorityTier.MUST, token_count=50
+            ),
+            ContextBlock(
+                name="input", content="b" * 100, priority=PriorityTier.HIGH, token_count=50
+            ),
+            ContextBlock(
+                name="memory", content="c" * 100, priority=PriorityTier.LOW, token_count=50
+            ),
         ]
         result = mgr.assemble(blocks)
         assert len(result) == 3
 
     def test_assemble_trim_low(self):
-        mgr = ContextBudgetManager(BudgetConfig(model_context_window=300, output_budget=50, safety_margin=50))
+        mgr = ContextBudgetManager(
+            BudgetConfig(model_context_window=300, output_budget=50, safety_margin=50)
+        )
         blocks = [
             ContextBlock(name="must1", content="a", priority=PriorityTier.MUST, token_count=100),
             ContextBlock(name="high1", content="b", priority=PriorityTier.HIGH, token_count=50),
@@ -210,7 +251,9 @@ class TestContextBudgetManager:
         assert len(result) < 4
 
     def test_assemble_trim_fails(self):
-        mgr = ContextBudgetManager(BudgetConfig(model_context_window=100, output_budget=10, safety_margin=10))
+        mgr = ContextBudgetManager(
+            BudgetConfig(model_context_window=100, output_budget=10, safety_margin=10)
+        )
         blocks = [
             ContextBlock(name="must1", content="a", priority=PriorityTier.MUST, token_count=200),
         ]
@@ -218,7 +261,9 @@ class TestContextBudgetManager:
             mgr.assemble(blocks)
 
     def test_trim_log(self):
-        mgr = ContextBudgetManager(BudgetConfig(model_context_window=200, output_budget=10, safety_margin=10))
+        mgr = ContextBudgetManager(
+            BudgetConfig(model_context_window=200, output_budget=10, safety_margin=10)
+        )
         blocks = [
             ContextBlock(name="must1", content="a", priority=PriorityTier.MUST, token_count=50),
             ContextBlock(name="low1", content="c", priority=PriorityTier.LOW, token_count=200),
@@ -227,7 +272,9 @@ class TestContextBudgetManager:
         assert mgr.trim_count > 0
 
     def test_frequent_trimming(self):
-        mgr = ContextBudgetManager(BudgetConfig(model_context_window=200, output_budget=10, safety_margin=10))
+        mgr = ContextBudgetManager(
+            BudgetConfig(model_context_window=200, output_budget=10, safety_margin=10)
+        )
         for _ in range(10):
             blocks = [
                 ContextBlock(name="must1", content="a", priority=PriorityTier.MUST, token_count=50),
@@ -237,7 +284,9 @@ class TestContextBudgetManager:
         assert mgr.frequent_trimming(threshold=5)
 
     def test_priority_ordering(self):
-        mgr = ContextBudgetManager(BudgetConfig(model_context_window=500, output_budget=50, safety_margin=50))
+        mgr = ContextBudgetManager(
+            BudgetConfig(model_context_window=500, output_budget=50, safety_margin=50)
+        )
         blocks = [
             ContextBlock(name="low", content="a", priority=PriorityTier.LOW, token_count=50),
             ContextBlock(name="high", content="b", priority=PriorityTier.HIGH, token_count=50),

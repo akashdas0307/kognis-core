@@ -115,8 +115,12 @@ class TestEnvelopeMetadata:
 
     def test_roundtrip(self):
         m = EnvelopeMetadata(
-            priority="tier_1_immediate", trust_level="tier_2_trusted",
-            trace_id="t", revision_count=1, parent_envelope_id="p", correlation_id="c",
+            priority="tier_1_immediate",
+            trust_level="tier_2_trusted",
+            trace_id="t",
+            revision_count=1,
+            parent_envelope_id="p",
+            correlation_id="c",
         )
         d = m.to_dict()
         m2 = EnvelopeMetadata.from_dict(d)
@@ -291,9 +295,13 @@ class TestEnvelopeDerive:
         assert e2.metadata.revision_count == 0
 
     def test_inherits_priority_and_trace(self):
-        e = make_envelope(metadata=make_metadata(
-            priority="tier_1_immediate", trace_id="trace-abc", correlation_id="corr-1",
-        ))
+        e = make_envelope(
+            metadata=make_metadata(
+                priority="tier_1_immediate",
+                trace_id="trace-abc",
+                correlation_id="corr-1",
+            )
+        )
         e2 = e.derive("derived_type", {})
         assert e2.metadata.priority == "tier_1_immediate"
         assert e2.metadata.trace_id == "trace-abc"
@@ -330,33 +338,48 @@ class TestCreateEnvelope:
 
     def test_generates_uuid_id(self):
         e = create_envelope(
-            origin_plugin="p", message_type="t", payload={}, pipeline="p",
+            origin_plugin="p",
+            message_type="t",
+            payload={},
+            pipeline="p",
         )
         uuid.UUID(e.id)  # should not raise
 
     def test_generates_trace_id(self):
         e = create_envelope(
-            origin_plugin="p", message_type="t", payload={}, pipeline="p",
+            origin_plugin="p",
+            message_type="t",
+            payload={},
+            pipeline="p",
         )
         uuid.UUID(e.metadata.trace_id)  # should not raise
 
     def test_custom_priority(self):
         e = create_envelope(
-            origin_plugin="p", message_type="t", payload={}, pipeline="p",
+            origin_plugin="p",
+            message_type="t",
+            payload={},
+            pipeline="p",
             priority="tier_1_immediate",
         )
         assert e.metadata.priority == "tier_1_immediate"
 
     def test_entry_slot(self):
         e = create_envelope(
-            origin_plugin="p", message_type="t", payload={}, pipeline="p",
+            origin_plugin="p",
+            message_type="t",
+            payload={},
+            pipeline="p",
             entry_slot="input_reception",
         )
         assert e.routing.entry_slot == "input_reception"
 
     def test_custom_trust_level(self):
         e = create_envelope(
-            origin_plugin="p", message_type="t", payload={}, pipeline="p",
+            origin_plugin="p",
+            message_type="t",
+            payload={},
+            pipeline="p",
             trust_level="tier_1_creator",
         )
         assert e.metadata.trust_level == "tier_1_creator"
@@ -365,7 +388,10 @@ class TestCreateEnvelope:
 class TestValidateEnvelope:
     def test_valid_envelope(self):
         e = create_envelope(
-            origin_plugin="p", message_type="t", payload={}, pipeline="p",
+            origin_plugin="p",
+            message_type="t",
+            payload={},
+            pipeline="p",
         )
         errors = validate_envelope(e)
         assert errors == []

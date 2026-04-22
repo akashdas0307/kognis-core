@@ -19,6 +19,7 @@ from nats.aio.msg import Msg
 @dataclass
 class EventBusConfig:
     """Configuration for NATS connection."""
+
     servers: list[str] = field(default_factory=lambda: ["nats://localhost:4222"])
     token: str = ""
     name: str = ""
@@ -30,6 +31,7 @@ class EventBusConfig:
 @dataclass
 class Subscription:
     """An active NATS subscription."""
+
     topic: str
     handler: Callable[[dict[str, Any]], Awaitable[None]]
     queue_group: str = ""
@@ -129,9 +131,7 @@ class EventBusClient:
         sub = await self._nc.subscribe(topic, queue=queue_group, cb=nats_handler)
 
         # sid is internal to nats-py now
-        sdk_sub = Subscription(
-            topic=topic, handler=handler, queue_group=queue_group, sid=0
-        )
+        sdk_sub = Subscription(topic=topic, handler=handler, queue_group=queue_group, sid=0)
         self._subscriptions[topic] = sub
         return sdk_sub
 

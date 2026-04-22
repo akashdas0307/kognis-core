@@ -33,6 +33,7 @@ from kognis_sdk.stateful_agent import StatefulAgent
 @dataclass
 class TestResult:
     """Result from a test dispatch."""
+
     envelope: Envelope
     processing_time_ms: int = 0
     errors: list[str] = field(default_factory=list)
@@ -73,7 +74,7 @@ class TestCore:  # noqa: N801 — named for SDK convention, not a pytest test cl
     ) -> Manifest:
         """Create a minimal test manifest."""
         slot_regs = []
-        for pipeline, slot in (slots or [("user_text_interaction", "input_reception")]):
+        for pipeline, slot in slots or [("user_text_interaction", "input_reception")]:
             slot_regs.append(SlotRegistration(pipeline=pipeline, slot=slot, priority=50))
 
         return Manifest(
@@ -138,25 +139,30 @@ class TestCore:  # noqa: N801 — named for SDK convention, not a pytest test cl
             return TestResult(envelope=envelope, errors=[f"No handler for slot: {slot}"])
 
         import time
+
         start = time.monotonic()
         try:
             result = await handler(envelope)
             elapsed_ms = int((time.monotonic() - start) * 1000)
-            self._dispatched.append({
-                "slot": slot,
-                "plugin_id": plugin.plugin_id,
-                "msg_type": envelope.message_type,
-                "success": True,
-            })
+            self._dispatched.append(
+                {
+                    "slot": slot,
+                    "plugin_id": plugin.plugin_id,
+                    "msg_type": envelope.message_type,
+                    "success": True,
+                }
+            )
             return TestResult(envelope=result, processing_time_ms=elapsed_ms)
         except Exception as e:
-            self._dispatched.append({
-                "slot": slot,
-                "plugin_id": plugin.plugin_id,
-                "msg_type": envelope.message_type,
-                "success": False,
-                "error": str(e),
-            })
+            self._dispatched.append(
+                {
+                    "slot": slot,
+                    "plugin_id": plugin.plugin_id,
+                    "msg_type": envelope.message_type,
+                    "success": False,
+                    "error": str(e),
+                }
+            )
             return TestResult(envelope=envelope, errors=[str(e)])
 
     async def run_cycle(self, agent: StatefulAgent) -> None:

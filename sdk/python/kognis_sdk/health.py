@@ -33,6 +33,7 @@ class HealthPulse:
 
     Emitted periodically by plugins to report technical health.
     """
+
     plugin_id: str
     timestamp: str
     status: str
@@ -173,6 +174,7 @@ class HealthPulseEmitter:
 @dataclass
 class StateChange:
     """A state change event per SPEC 06."""
+
     plugin_id: str
     state_name: str
     old_value: str

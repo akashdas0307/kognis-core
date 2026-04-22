@@ -3,7 +3,6 @@
 Validates SPEC 02: Plugin Manifest parsing and validation.
 """
 
-
 import pytest
 import yaml
 
@@ -261,12 +260,14 @@ class TestLifecycleSpec:
         assert lc.sleep_behavior == "suspend"
 
     def test_from_dict_custom(self):
-        lc = LifecycleSpec.from_dict({
-            "startup_order": 10,
-            "health_pulse_interval": 5,
-            "state_broadcast": True,
-            "sleep_behavior": "background",
-        })
+        lc = LifecycleSpec.from_dict(
+            {
+                "startup_order": 10,
+                "health_pulse_interval": 5,
+                "state_broadcast": True,
+                "sleep_behavior": "background",
+            }
+        )
         assert lc.startup_order == 10
         assert lc.state_broadcast is True
         assert lc.sleep_behavior == "background"

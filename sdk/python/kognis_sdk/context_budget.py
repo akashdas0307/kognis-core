@@ -21,6 +21,7 @@ class PriorityTier(Enum):
 @dataclass
 class ContextBlock:
     """A block of context with priority and estimated token count."""
+
     name: str
     content: str
     priority: PriorityTier
@@ -45,6 +46,7 @@ class ContextBudgetError(Exception):
 @dataclass
 class BudgetConfig:
     """Configuration for context budget management."""
+
     output_budget: int = 4000
     safety_margin: int = 500
     model_context_window: int = 128000
@@ -74,9 +76,7 @@ class ContextBudgetManager:
         Available = window - output_budget - safety_margin
         """
         return (
-            self.config.model_context_window
-            - self.config.output_budget
-            - self.config.safety_margin
+            self.config.model_context_window - self.config.output_budget - self.config.safety_margin
         )
 
     def assemble(
@@ -147,12 +147,14 @@ class ContextBudgetManager:
 
     def _log_trim(self, block: ContextBlock, tier: str, reason: str) -> None:
         """Log a trim action for adaptive feedback."""
-        self._trim_log.append({
-            "block_name": block.name,
-            "tier": tier,
-            "reason": reason,
-            "token_count": block.token_count,
-        })
+        self._trim_log.append(
+            {
+                "block_name": block.name,
+                "tier": tier,
+                "reason": reason,
+                "token_count": block.token_count,
+            }
+        )
 
     @property
     def trim_count(self) -> int:

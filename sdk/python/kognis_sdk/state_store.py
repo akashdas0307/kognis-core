@@ -141,9 +141,7 @@ class StateStore:
             try:
                 self._state = self._restore_from_snapshot(snapshot)
                 self._sync_write()
-                logger.warning(
-                    "Restored %s from Layer 2 snapshot: %s", self.plugin_id, snapshot
-                )
+                logger.warning("Restored %s from Layer 2 snapshot: %s", self.plugin_id, snapshot)
                 return self._state
             except Exception as e:
                 logger.warning("Layer 2 restore failed for %s: %s", self.plugin_id, e)
@@ -215,9 +213,7 @@ class StateStore:
         for snapshot in self.backup_dir.glob(f"{self.plugin_id}_*.tar.gz"):
             try:
                 date_str = snapshot.stem.split("_", 1)[1]
-                snapshot_date = datetime.strptime(date_str, "%Y%m%dT%H%M%SZ").replace(
-                    tzinfo=UTC
-                )
+                snapshot_date = datetime.strptime(date_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
                 age_days = (now - snapshot_date).days
                 if age_days > LAYER2_RETENTION_DAYS:
                     snapshot.unlink()

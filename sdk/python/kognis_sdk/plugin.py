@@ -31,6 +31,7 @@ logger = logging.getLogger("kognis_sdk")
 @dataclass
 class PluginConfig:
     """Runtime configuration for a plugin instance."""
+
     socket_path: str = "/tmp/kognis.sock"
     nats_servers: list[str] = field(default_factory=lambda: ["nats://localhost:4222"])
     log_level: str = "INFO"
@@ -128,9 +129,7 @@ class Plugin(ABC):  # noqa: B024 — intentional non-abstract base for plugin in
         # Step 1: Register
         entrypoint = f"{sys.executable} {sys.argv[0]}"
         ack = await self.control_plane.register(
-            self.manifest,
-            pid=os.getpid(),
-            entrypoint=entrypoint
+            self.manifest, pid=os.getpid(), entrypoint=entrypoint
         )
 
         # Step 2: Connect NATS (Event Bus)

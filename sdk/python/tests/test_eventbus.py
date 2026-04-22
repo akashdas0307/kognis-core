@@ -97,10 +97,16 @@ class TestEventBusClient:
 
 class TestTopicHelpers:
     def test_make_state_topic(self):
-        assert make_state_topic("cognitive_core", "activity_state") == "state.cognitive_core.activity_state"
+        assert (
+            make_state_topic("cognitive_core", "activity_state")
+            == "state.cognitive_core.activity_state"
+        )
 
     def test_make_event_topic(self):
-        assert make_event_topic("memory", "consolidation_complete") == "event.memory.consolidation_complete"
+        assert (
+            make_event_topic("memory", "consolidation_complete")
+            == "event.memory.consolidation_complete"
+        )
 
     def test_parse_state_topic(self):
         kind, plugin, name = parse_topic("state.cognitive_core.activity_state")

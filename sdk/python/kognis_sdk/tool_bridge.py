@@ -15,6 +15,7 @@ from kognis_sdk.capability import CapabilityRegistryClient
 @dataclass
 class ToolSchema:
     """An LLM-facing tool definition."""
+
     name: str
     description: str
     parameters: dict[str, Any] = field(default_factory=dict)
@@ -23,6 +24,7 @@ class ToolSchema:
 @dataclass
 class ToolUseBlock:
     """An LLM tool_use response block."""
+
     id: str
     name: str
     params: dict[str, Any] = field(default_factory=dict)
@@ -31,6 +33,7 @@ class ToolUseBlock:
 @dataclass
 class ToolResult:
     """Result to return to LLM for a tool_use."""
+
     tool_use_id: str
     content: Any
 
@@ -89,10 +92,12 @@ class ToolBridge:
                 params=block.params,
                 await_response=True,
             )
-            results.append(ToolResult(
-                tool_use_id=block.id,
-                content=response.result,
-            ))
+            results.append(
+                ToolResult(
+                    tool_use_id=block.id,
+                    content=response.result,
+                )
+            )
         return results
 
     def get_cached_tools(self) -> list[ToolSchema]:

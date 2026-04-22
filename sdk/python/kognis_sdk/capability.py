@@ -15,6 +15,7 @@ from kognis_sdk.control_plane import CapabilityQuery, CapabilityResponse, Contro
 @dataclass
 class RegistryEntry:
     """A capability entry in the registry."""
+
     capability_id: str
     providing_plugins: list[str] = field(default_factory=list)
     status: str = "available"

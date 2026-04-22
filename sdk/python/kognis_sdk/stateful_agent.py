@@ -142,13 +142,14 @@ class StatefulAgent:
         if len(keys) <= 2:
             return
 
-        keys_to_remove = keys[len(keys) // 2:]
+        keys_to_remove = keys[len(keys) // 2 :]
         for key in keys_to_remove:
             del self._working_memory[key]
 
         logger.debug(
             "Compacted working memory: %d → %d keys",
-            len(keys), len(self._working_memory),
+            len(keys),
+            len(self._working_memory),
         )
 
     async def start(self) -> None:
@@ -158,9 +159,7 @@ class StatefulAgent:
         # Calculate entrypoint for autonomous restarts
         entrypoint = f"{sys.executable} {sys.argv[0]}"
         ack = await self.control_plane.register(
-            self.manifest,
-            pid=os.getpid(),
-            entrypoint=entrypoint
+            self.manifest, pid=os.getpid(), entrypoint=entrypoint
         )
 
         await self.event_bus.connect(token=ack.event_bus_token)

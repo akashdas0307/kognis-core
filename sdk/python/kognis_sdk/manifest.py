@@ -204,17 +204,11 @@ class Manifest:
         """Parse a manifest from a dict (e.g., loaded from YAML)."""
         runtime_data = data.get("runtime", {})
         runtime = (
-            RuntimeSpec.from_dict(runtime_data)
-            if runtime_data
-            else RuntimeSpec(entrypoint="")
+            RuntimeSpec.from_dict(runtime_data) if runtime_data else RuntimeSpec(entrypoint="")
         )
 
-        slot_regs = [
-            SlotRegistration.from_dict(s) for s in data.get("slot_registrations", [])
-        ]
-        provides_caps = [
-            CapabilitySpec.from_dict(c) for c in data.get("provides_capabilities", [])
-        ]
+        slot_regs = [SlotRegistration.from_dict(s) for s in data.get("slot_registrations", [])]
+        provides_caps = [CapabilitySpec.from_dict(c) for c in data.get("provides_capabilities", [])]
         requires_caps = [
             RequiredCapability.from_dict(c) for c in data.get("requires_capabilities", [])
         ]
@@ -301,8 +295,7 @@ def validate_manifest(manifest: Manifest) -> list[str]:
             errors.append("slot_registration missing slot")
         if reg.priority < 0 or reg.priority > 100:
             errors.append(
-                f"priority {reg.priority} out of range 0-100"
-                f" for {reg.pipeline}/{reg.slot}"
+                f"priority {reg.priority} out of range 0-100 for {reg.pipeline}/{reg.slot}"
             )
 
     # 3. Capability validation
