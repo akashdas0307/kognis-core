@@ -10,18 +10,17 @@ import asyncio
 import logging
 import os
 import sys
-from abc import ABC, abstractmethod
+from abc import ABC
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from kognis_sdk.control_plane import (
     ControlPlaneClient,
-    DispatchComplete,
-    DispatchFailed,
     DispatchMessage,
     PluginState,
 )
-from kognis_sdk.envelope import Envelope, create_envelope, validate_envelope
+from kognis_sdk.envelope import Envelope
 from kognis_sdk.eventbus import EventBusClient
 from kognis_sdk.health import HealthPulseEmitter
 from kognis_sdk.manifest import Manifest
@@ -47,7 +46,7 @@ class PluginError(Exception):
         super().__init__(f"[{code}] {message}")
 
 
-class Plugin(ABC):
+class Plugin(ABC):  # noqa: B024 — intentional non-abstract base for plugin inheritance
     """Base class for stateless Kognis plugins.
 
     Spec reference: docs/spec/02-plugin-manifest.md (handler_mode=stateless)
@@ -95,7 +94,7 @@ class Plugin(ABC):
         """
         self._slot_handlers[slot] = handler
 
-    async def on_startup(self) -> None:
+    async def on_startup(self) -> None:  # noqa: B027 — hook method, intentionally not abstract
         """Called after registration handshake completes.
 
         Override to perform initialization logic (e.g., connect to
@@ -103,7 +102,7 @@ class Plugin(ABC):
         """
         pass
 
-    async def on_shutdown(self) -> None:
+    async def on_shutdown(self) -> None:  # noqa: B027 — hook method, intentionally not abstract
         """Called during graceful shutdown.
 
         Override to perform cleanup logic (e.g., close connections,
@@ -129,7 +128,7 @@ class Plugin(ABC):
         # Step 1: Register
         entrypoint = f"{sys.executable} {sys.argv[0]}"
         ack = await self.control_plane.register(
-            self.manifest, 
+            self.manifest,
             pid=os.getpid(),
             entrypoint=entrypoint
         )
@@ -141,7 +140,9 @@ class Plugin(ABC):
         for slot_reg in self.manifest.slot_registrations:
             if slot_reg.slot in self._slot_handlers:
 
-                async def make_handler(slot: str) -> Callable[[DispatchMessage], Awaitable[Envelope]]:
+                async def make_handler(
+                    slot: str,
+                ) -> Callable[[DispatchMessage], Awaitable[Envelope]]:
                     original = self._slot_handlers[slot]
 
                     async def dispatch_handler(msg: DispatchMessage) -> Envelope:
@@ -159,10 +160,10 @@ class Plugin(ABC):
 
         # Step 3: Send Ready
         await self.control_plane.send_ready(subscribed_topics=subscribed_topics)
-        
+
         # Step 4: Start continuous Pulse loop
         await self.health_emitter.start()
-        
+
         self._state = PluginState.HEALTHY_ACTIVE
         self._running = True
 

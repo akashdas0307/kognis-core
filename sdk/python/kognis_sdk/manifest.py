@@ -203,11 +203,21 @@ class Manifest:
     def from_dict(cls, data: dict[str, Any]) -> Manifest:
         """Parse a manifest from a dict (e.g., loaded from YAML)."""
         runtime_data = data.get("runtime", {})
-        runtime = RuntimeSpec.from_dict(runtime_data) if runtime_data else RuntimeSpec(entrypoint="")
+        runtime = (
+            RuntimeSpec.from_dict(runtime_data)
+            if runtime_data
+            else RuntimeSpec(entrypoint="")
+        )
 
-        slot_regs = [SlotRegistration.from_dict(s) for s in data.get("slot_registrations", [])]
-        provides_caps = [CapabilitySpec.from_dict(c) for c in data.get("provides_capabilities", [])]
-        requires_caps = [RequiredCapability.from_dict(c) for c in data.get("requires_capabilities", [])]
+        slot_regs = [
+            SlotRegistration.from_dict(s) for s in data.get("slot_registrations", [])
+        ]
+        provides_caps = [
+            CapabilitySpec.from_dict(c) for c in data.get("provides_capabilities", [])
+        ]
+        requires_caps = [
+            RequiredCapability.from_dict(c) for c in data.get("requires_capabilities", [])
+        ]
         event_subs = [EventSubscription.from_dict(e) for e in data.get("event_subscriptions", [])]
         event_pubs = [EventPublication.from_dict(e) for e in data.get("event_publications", [])]
         state_bcasts = [StateBroadcast.from_dict(s) for s in data.get("state_broadcasts", [])]
@@ -290,7 +300,10 @@ def validate_manifest(manifest: Manifest) -> list[str]:
         if not reg.slot:
             errors.append("slot_registration missing slot")
         if reg.priority < 0 or reg.priority > 100:
-            errors.append(f"priority {reg.priority} out of range 0-100 for {reg.pipeline}/{reg.slot}")
+            errors.append(
+                f"priority {reg.priority} out of range 0-100"
+                f" for {reg.pipeline}/{reg.slot}"
+            )
 
     # 3. Capability validation
     for cap in manifest.provides_capabilities:

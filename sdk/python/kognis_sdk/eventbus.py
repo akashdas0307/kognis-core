@@ -6,11 +6,10 @@ communication via the core daemon's embedded NATS server.
 
 from __future__ import annotations
 
-import asyncio
 import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Awaitable
-from datetime import datetime, timezone
+from typing import Any
 
 import nats
 from nats.aio.client import Client as NATSClient
@@ -123,13 +122,16 @@ class EventBusClient:
             try:
                 data = json.loads(msg.data.decode("utf-8"))
                 await handler(data)
-            except Exception as e:
+            except Exception:
                 # Log error in handler
                 pass
 
         sub = await self._nc.subscribe(topic, queue=queue_group, cb=nats_handler)
-        
-        sdk_sub = Subscription(topic=topic, handler=handler, queue_group=queue_group, sid=0) # sid is internal to nats-py now
+
+        # sid is internal to nats-py now
+        sdk_sub = Subscription(
+            topic=topic, handler=handler, queue_group=queue_group, sid=0
+        )
         self._subscriptions[topic] = sub
         return sdk_sub
 

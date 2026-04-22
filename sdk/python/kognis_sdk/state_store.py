@@ -6,13 +6,11 @@ management with crash recovery and backup chain.
 
 from __future__ import annotations
 
-import gzip
 import json
 import logging
 import os
-import shutil
 import tarfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -163,7 +161,7 @@ class StateStore:
         "Every 30 minutes, stored as tar.gz in backup directory"
         """
         self._ensure_dirs()
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         snapshot_name = f"{self.plugin_id}_{timestamp}.tar.gz"
         snapshot_path = self.backup_dir / snapshot_name
 
@@ -198,7 +196,10 @@ class StateStore:
             member = tar.getmember("state.json")
             f = tar.extractfile(member)
             if f is None:
-                raise StateStoreError("corrupt_snapshot", f"Cannot extract state.json from {snapshot_path}")
+                raise StateStoreError(
+                    "corrupt_snapshot",
+                    f"Cannot extract state.json from {snapshot_path}",
+                )
             return json.load(f)
 
     def _prune_old_snapshots(self) -> None:
@@ -210,12 +211,12 @@ class StateStore:
         if not self.backup_dir.exists():
             return
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for snapshot in self.backup_dir.glob(f"{self.plugin_id}_*.tar.gz"):
             try:
                 date_str = snapshot.stem.split("_", 1)[1]
                 snapshot_date = datetime.strptime(date_str, "%Y%m%dT%H%M%SZ").replace(
-                    tzinfo=timezone.utc
+                    tzinfo=UTC
                 )
                 age_days = (now - snapshot_date).days
                 if age_days > LAYER2_RETENTION_DAYS:

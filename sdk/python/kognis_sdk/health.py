@@ -6,11 +6,11 @@ Implements SPEC 18: Health Pulse Schema and SPEC 06: State Broadcast.
 from __future__ import annotations
 
 import asyncio
-import json
+import contextlib
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable, Awaitable
+from datetime import UTC, datetime
+from typing import Any
 
 from kognis_sdk.eventbus import EventBusClient, make_state_topic
 
@@ -118,7 +118,7 @@ class HealthPulseEmitter:
 
     def record_dispatch(self) -> None:
         """Record that a dispatch was just received."""
-        self._last_dispatch_at = datetime.now(timezone.utc).isoformat()
+        self._last_dispatch_at = datetime.now(UTC).isoformat()
 
     def add_alert(self, severity: str, code: str, message: str) -> None:
         """Add a health alert to the next pulse."""
@@ -126,7 +126,7 @@ class HealthPulseEmitter:
 
     def build_pulse(self) -> HealthPulse:
         """Build a health pulse from current state."""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         pulse = HealthPulse(
             plugin_id=self.plugin_id,
             timestamp=now,
@@ -165,10 +165,8 @@ class HealthPulseEmitter:
         self._running = False
         if self._task and not self._task.done():
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
         self._task = None
 
 
@@ -220,7 +218,7 @@ class StateBroadcaster:
                 state_name=state_name,
                 old_value=old_value,
                 new_value=new_value,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 source=source,
             )
 
@@ -229,7 +227,7 @@ class StateBroadcaster:
             state_name=state_name,
             old_value=old_value,
             new_value=new_value,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             source=source or self.plugin_id,
         )
 

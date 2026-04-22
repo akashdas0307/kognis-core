@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 # Spec-defined constants
@@ -164,7 +164,9 @@ class Envelope:
         """
         new_count = self.routing.hop_count + 1
         if new_count > MAX_HOP_COUNT:
-            raise EnvelopeError("loop_detected", f"hop_count {new_count} exceeds max {MAX_HOP_COUNT}")
+            raise EnvelopeError(
+                "loop_detected", f"hop_count {new_count} exceeds max {MAX_HOP_COUNT}"
+            )
 
         new_routing = RoutingInfo(
             pipeline=self.routing.pipeline,
@@ -239,7 +241,10 @@ class Envelope:
         """
         new_count = self.metadata.revision_count + 1
         if new_count > MAX_REVISION_COUNT:
-            raise EnvelopeError("max_revisions_exceeded", f"revision_count {new_count} exceeds max {MAX_REVISION_COUNT}")
+            raise EnvelopeError(
+                "max_revisions_exceeded",
+                f"revision_count {new_count} exceeds max {MAX_REVISION_COUNT}",
+            )
 
         new_metadata = EnvelopeMetadata(
             priority=self.metadata.priority,
@@ -266,7 +271,7 @@ class Envelope:
 
         Sets parent_envelope_id and generates a new ID.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         return Envelope(
             envelope_version=self.envelope_version,
             id=str(uuid.uuid4()),
@@ -300,7 +305,7 @@ def create_envelope(
 
     Convenience function for envelope creation with defaults.
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     return Envelope(
         id=str(uuid.uuid4()),
         created_at=now,
@@ -334,7 +339,8 @@ def validate_envelope(envelope: Envelope) -> list[str]:
         errors.append("hop_count must be non-negative")
     if envelope.metadata.priority not in ("tier_1_immediate", "tier_2_elevated", "tier_3_normal"):
         errors.append(f"Invalid priority: {envelope.metadata.priority}")
-    if envelope.metadata.trust_level not in ("tier_1_creator", "tier_2_trusted", "tier_3_external", "internal"):
+    valid_trust = ("tier_1_creator", "tier_2_trusted", "tier_3_external", "internal")
+    if envelope.metadata.trust_level not in valid_trust:
         errors.append(f"Invalid trust_level: {envelope.metadata.trust_level}")
     if envelope.metadata.revision_count < 0:
         errors.append("revision_count must be non-negative")

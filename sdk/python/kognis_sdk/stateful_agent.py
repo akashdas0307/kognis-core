@@ -4,15 +4,17 @@ Implements SPEC 02 handler_mode=stateful_agent and SPEC 08 lifecycle
 with continuous cognition loop support.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
-from typing import Any, Awaitable, Callable
+import os
+import sys
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from kognis_sdk.control_plane import ControlPlaneClient, PluginState
-from kognis_sdk.envelope import Envelope, create_envelope
+from kognis_sdk.envelope import Envelope
 from kognis_sdk.eventbus import EventBusClient
+from kognis_sdk.health import HealthPulseEmitter
 from kognis_sdk.manifest import Manifest
 from kognis_sdk.plugin import PluginConfig, PluginError
 
@@ -41,6 +43,15 @@ class StatefulAgent:
         self.config = config or PluginConfig()
         self.control_plane = ControlPlaneClient(socket_path=self.config.socket_path)
         self.event_bus = EventBusClient()
+        self.health_emitter = HealthPulseEmitter(
+            plugin_id=self.manifest.plugin_id,
+            event_bus=self.event_bus,
+            interval_seconds=(
+                getattr(self.manifest.lifecycle, "health_pulse_interval", 10)
+                if self.manifest.lifecycle
+                else 10
+            ),
+        )
         self._running = False
         self._state = PluginState.UNREGISTERED
         self._working_memory: dict[str, Any] = {}
@@ -142,16 +153,24 @@ class StatefulAgent:
 
     async def start(self) -> None:
         """Full startup sequence."""
-        import os
-
         await self.control_plane.connect()
 
-        ack = await self.control_plane.register(self.manifest, pid=os.getpid())
+        # Calculate entrypoint for autonomous restarts
+        entrypoint = f"{sys.executable} {sys.argv[0]}"
+        ack = await self.control_plane.register(
+            self.manifest,
+            pid=os.getpid(),
+            entrypoint=entrypoint
+        )
 
         await self.event_bus.connect(token=ack.event_bus_token)
 
         subscribed_topics = [sub.topic for sub in self.manifest.event_subscriptions]
         await self.control_plane.send_ready(subscribed_topics=subscribed_topics)
+
+        # Start Pulse loop
+        await self.health_emitter.start()
+
         self._state = PluginState.HEALTHY_ACTIVE
         self._running = True
 
@@ -183,6 +202,7 @@ class StatefulAgent:
         self._state = PluginState.SHUTTING_DOWN
 
         await self.on_shutdown()
+        await self.health_emitter.stop()
         await self.control_plane.shutdown()
         await self.event_bus.close()
 

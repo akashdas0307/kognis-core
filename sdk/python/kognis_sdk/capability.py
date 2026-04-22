@@ -9,8 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from kognis_sdk.control_plane import ControlPlaneClient, CapabilityQuery, CapabilityResponse
-from kognis_sdk.manifest import CapabilitySpec
+from kognis_sdk.control_plane import CapabilityQuery, CapabilityResponse, ControlPlaneClient
 
 
 @dataclass

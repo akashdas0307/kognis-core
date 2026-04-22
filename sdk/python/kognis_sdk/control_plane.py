@@ -7,16 +7,17 @@ dispatch handling, capability queries, and shutdown.
 
 from __future__ import annotations
 
-import asyncio
-import os
-import time
+import contextlib
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import UTC
 from enum import Enum
-from typing import Any, Callable, Awaitable
+from typing import Any
 
 import grpc
+
+from kognis_sdk.envelope import Envelope, validate_envelope
 from kognis_sdk.generated import protocol_pb2, protocol_pb2_grpc
-from kognis_sdk.envelope import Envelope, EnvelopeError, validate_envelope
 from kognis_sdk.manifest import Manifest
 
 
@@ -209,7 +210,9 @@ class ControlPlaneClient:
         Raises ControlPlaneError if core doesn't respond within timeout.
         """
         if self.state not in (PluginState.UNREGISTERED,):
-            raise ControlPlaneError("invalid_state", f"Cannot register from state {self.state.value}")
+            raise ControlPlaneError(
+                "invalid_state", f"Cannot register from state {self.state.value}"
+            )
 
         if not self._stub:
             raise ControlPlaneError("not_connected", "Control plane not connected")
@@ -228,7 +231,7 @@ class ControlPlaneClient:
         try:
             # Step 2: REGISTER_ACK
             response = await self._stub.Register(request, timeout=REGISTRATION_ACK_TIMEOUT)
-            
+
             if response.error:
                 raise ControlPlaneError("registration_failed", response.error)
 
@@ -245,7 +248,7 @@ class ControlPlaneClient:
             self.state = PluginState.REGISTERED
             return ack
         except grpc.RpcError as e:
-            raise ControlPlaneError("rpc_error", str(e))
+            raise ControlPlaneError("rpc_error", str(e)) from e
 
     async def send_ready(self, subscribed_topics: list[str], health_endpoint: str = "") -> None:
         """Execute registration handshake step 3 — send READY.
@@ -259,13 +262,13 @@ class ControlPlaneClient:
             raise ControlPlaneError("not_connected", "Control plane not connected")
 
         request = protocol_pb2.ReadyRequest(plugin_id=self.plugin_id)
-        
+
         try:
             await self._stub.Ready(request, timeout=READY_CONFIRM_TIMEOUT)
             self.state = PluginState.HEALTHY_ACTIVE
             self._running = True
         except grpc.RpcError as e:
-            raise ControlPlaneError("rpc_error", str(e))
+            raise ControlPlaneError("rpc_error", str(e)) from e
 
     async def dispatch(self, msg: DispatchMessage) -> Envelope:
         """Process a dispatch from core.
@@ -273,7 +276,9 @@ class ControlPlaneClient:
         Handles the dispatch lifecycle: ACK → PROCESSING → COMPLETE/FAILED.
         """
         if self.state != PluginState.HEALTHY_ACTIVE:
-            raise ControlPlaneError("invalid_state", "Cannot process dispatches unless HEALTHY_ACTIVE")
+            raise ControlPlaneError(
+                "invalid_state", "Cannot process dispatches unless HEALTHY_ACTIVE"
+            )
 
         handler = self._dispatch_handlers.get(msg.slot)
         if handler is None:
@@ -297,7 +302,9 @@ class ControlPlaneClient:
         Spec reference: SPEC 04 Section 4.5
         """
         if self.state != PluginState.HEALTHY_ACTIVE:
-            raise ControlPlaneError("invalid_state", "Cannot query capabilities unless HEALTHY_ACTIVE")
+            raise ControlPlaneError(
+                "invalid_state", "Cannot query capabilities unless HEALTHY_ACTIVE"
+            )
 
         return CapabilityResponse(
             query_id=f"q_{query.target_capability}",
@@ -310,10 +317,10 @@ class ControlPlaneClient:
 
         Spec reference: SPEC 04 Section 4.7
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
         hb = Heartbeat(
             plugin_id=self.plugin_id_runtime,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             metrics=metrics or {},
             status=self.state.value,
         )
@@ -332,10 +339,8 @@ class ControlPlaneClient:
 
         if self._stub:
             request = protocol_pb2.ShutdownPluginRequest(plugin_id=self.plugin_id_runtime)
-            try:
+            with contextlib.suppress(grpc.RpcError):
                 await self._stub.Shutdown(request)
-            except grpc.RpcError:
-                pass # Best effort
 
         self.state = PluginState.SHUT_DOWN
 

@@ -6,20 +6,27 @@ of plugins without requiring the full core daemon.
 
 from __future__ import annotations
 
-import asyncio
+import asyncio  # noqa: F401 — re-exported for test convenience
+from collections.abc import Awaitable as Awaitable  # noqa: F401
+from collections.abc import Callable as Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Awaitable
-from unittest.mock import AsyncMock
+from typing import Any
+from unittest.mock import AsyncMock as AsyncMock  # noqa: F401
 
 from kognis_sdk.control_plane import (
-    ControlPlaneClient,
-    DispatchMessage,
-    PluginState,
+    ControlPlaneClient as ControlPlaneClient,  # noqa: F401
+)
+from kognis_sdk.control_plane import (
+    DispatchMessage as DispatchMessage,  # noqa: F401
+)
+from kognis_sdk.control_plane import (
+    PluginState as PluginState,  # noqa: F401
 )
 from kognis_sdk.envelope import Envelope, create_envelope
-from kognis_sdk.eventbus import EventBusClient
+from kognis_sdk.eventbus import EventBusClient as EventBusClient  # noqa: F401
 from kognis_sdk.manifest import Manifest, SlotRegistration
-from kognis_sdk.plugin import Plugin, PluginConfig
+from kognis_sdk.plugin import Plugin  # noqa: F401
+from kognis_sdk.plugin import PluginConfig as PluginConfig
 from kognis_sdk.stateful_agent import StatefulAgent
 
 
