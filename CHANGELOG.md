@@ -5,6 +5,26 @@ All notable changes to the Kognis Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-22
+
+### Added
+
+- Python SDK core implementation (Phase 4, M-001 through M-012):
+  - M-001: Manifest parser (`kognis_sdk/manifest.py`) — SPEC 02 compliance with from_yaml/from_dict, validation
+  - M-002: Envelope handling (`kognis_sdk/envelope.py`) — SPEC 01 compliance with immutable pattern, derive, validation
+  - M-003: Control plane client (`kognis_sdk/control_plane.py`) — SPEC 04 handshake protocols, registration, dispatch, heartbeat
+  - M-004: Event bus client (`kognis_sdk/eventbus.py`) — NATS pub/sub wrapper, topic helpers
+  - M-005: Plugin base class (`kognis_sdk/plugin.py`) — SPEC 02/08 stateless handler mode, lifecycle hooks
+  - M-006: Stateful agent (`kognis_sdk/stateful_agent.py`) — SPEC 02/08 continuous cognition loop, memory compaction
+  - M-007: Capability registry client (`kognis_sdk/capability.py`) — SPEC 05 double handshake queries, LLM tool listing
+  - M-008: Tool bridge (`kognis_sdk/tool_bridge.py`) — SPEC 11 LLM tool-call translation layer
+  - M-009: Context budget manager (`kognis_sdk/context_budget.py`) — SPEC 10 priority tiers, trimming, adaptive feedback
+  - M-010: Health pulse emitter (`kognis_sdk/health.py`) — SPEC 18 periodic pulses; SPEC 06 state broadcaster
+  - M-011: State store (`kognis_sdk/state_store.py`) — SPEC 12 three-layer durability with crash recovery
+  - M-012: Testing harness (`kognis_sdk/testing/`) — TestCore fixture for plugin unit testing
+- Full SDK public API exports via `kognis_sdk/__init__.py`
+- 204 unit tests across 6 test files + 59 integration tests (263 total, all passing)
+
 ## [0.2.1] - 2026-04-22
 
 ### Added
