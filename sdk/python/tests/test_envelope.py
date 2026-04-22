@@ -188,7 +188,7 @@ class TestEnvelopeWithHopIncrement:
 
     def test_immutable_original(self):
         e = make_envelope(routing=make_routing(hop_count=5))
-        e2 = e.with_hop_increment()
+        e.with_hop_increment()  # verify immutability
         assert e.routing.hop_count == 5
 
     def test_raises_at_max(self):
@@ -218,7 +218,7 @@ class TestEnvelopeWithCompletedStage:
 
     def test_immutable_original(self):
         e = make_envelope(routing=make_routing(completed_stages=["a"]))
-        e2 = e.with_completed_stage("b")
+        e.with_completed_stage("b")  # verify immutability
         assert e.routing.completed_stages == ["a"]
 
 
@@ -259,7 +259,7 @@ class TestEnvelopeWithRevision:
 
     def test_immutable_original(self):
         e = make_envelope(metadata=make_metadata(revision_count=0))
-        e2 = e.with_revision()
+        e.with_revision()  # verify immutability
         assert e.metadata.revision_count == 0
 
     def test_preserves_other_metadata(self):
