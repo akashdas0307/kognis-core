@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"go vet ./... 2>&1 && go test ./... 2>&1\",\"timeout\":120000,\"description\":\"Verify Go code compiles and tests pass\"}",
+  "error": "Exit code 1\n?   \tgithub.com/kognis-framework/kognis-core/core/cmd/kognis\t[no test files]\nok  \tgithub.com/kognis-framework/kognis-core/core/internal/config\t(cached)\n2026/04/22 19:47:40 handshake: plugin test-plugin registered successfully\n--- FAIL: TestPerformHandshake (0.00s)\npanic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]\n[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x97c6b0]\n\ngoroutine 8 [running]:\ntesting.tRunner.func1.2({0xa746e...",
+  "timestamp": "2026-04-22T14:17:40.666Z",
+  "retry_count": 1
+}

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nats-io/nats.go"
 	"github.com/kognis-framework/kognis-core/core/internal/eventbus"
 	"github.com/kognis-framework/kognis-core/core/internal/registry"
 )

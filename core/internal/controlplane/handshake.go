@@ -50,11 +50,13 @@ func PerformHandshake(req *HandshakeRequest, reg *registry.Registry, bus *eventb
 	log.Printf("handshake: plugin %s registered successfully", req.PluginID)
 
 	// Publish registration event
-	event, _ := json.Marshal(map[string]string{
-		"plugin_id": req.PluginID,
-		"state":     "REGISTERED",
-	})
-	bus.Publish("kognis.plugin.register", event)
+	if bus != nil {
+		event, _ := json.Marshal(map[string]string{
+			"plugin_id": req.PluginID,
+			"state":     "REGISTERED",
+		})
+		bus.Publish("kognis.plugin.register", event)
+	}
 
 	return &HandshakeResponse{
 		PluginID:     req.PluginID,
