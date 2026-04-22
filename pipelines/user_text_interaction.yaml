@@ -1,0 +1,65 @@
+# Pipeline: user_text_interaction
+# Source: docs/spec/03-pipeline-templates.md (Section 3.3.1)
+# Description: User text message flows through perception, cognition, and response
+
+pipeline_version: 1
+pipeline_id: user_text_interaction
+description: "User text message flows through perception, cognition, and response"
+
+accepted_message_types:
+  - user_text_input
+
+slots:
+  - slot_id: input_reception
+    required: true
+    allows_multiple_plugins: true
+    execution_mode: parallel
+    valid_entry_point: true
+    timeout_seconds: 5
+
+  - slot_id: input_enrichment
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 10
+    on_empty: skip
+
+  - slot_id: cognitive_processing
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 60
+    on_all_failed: fail
+
+  - slot_id: action_review
+    required: false
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 15
+    on_empty: skip
+
+  - slot_id: action_execution
+    required: true
+    allows_multiple_plugins: true
+    execution_mode: by_action_type
+    valid_entry_point: false
+    timeout_seconds: 30
+
+  - slot_id: output_delivery
+    required: true
+    allows_multiple_plugins: true
+    execution_mode: by_channel_match
+    valid_entry_point: false
+    timeout_seconds: 10
+
+error_handling:
+  on_slot_failure: skip_and_log
+  on_pipeline_failure: notify_and_queue
+  max_revisions: 3
+
+timeout:
+  slot_timeout: 30s
+  pipeline_timeout: 120s

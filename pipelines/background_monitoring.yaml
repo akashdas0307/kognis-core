@@ -1,0 +1,61 @@
+# Pipeline: background_monitoring
+# Source: docs/spec/03-pipeline-templates.md (Section 3.3.3)
+# Description: Ambient observations that may or may not require cognitive attention
+
+pipeline_version: 1
+pipeline_id: background_monitoring
+description: "Ambient observations that may or may not require cognitive attention"
+
+accepted_message_types:
+  - ambient_audio
+  - visual_frame
+  - eal_escalation
+
+slots:
+  - slot_id: ambient_assessment
+    required: true
+    allows_multiple_plugins: true
+    execution_mode: parallel
+    valid_entry_point: true
+    timeout_seconds: 5
+
+  - slot_id: significance_gate
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 3
+    # If significant, continues; else, logs and exits
+
+  - slot_id: cognitive_processing
+    required: false
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 30
+    on_empty: skip
+
+  - slot_id: action_execution
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: by_action_type
+    valid_entry_point: false
+    timeout_seconds: 15
+    on_empty: skip
+
+  - slot_id: output_delivery
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: by_channel_match
+    valid_entry_point: false
+    timeout_seconds: 5
+    on_empty: skip
+
+error_handling:
+  on_slot_failure: skip_and_log
+  on_pipeline_failure: skip_and_log
+  max_revisions: 1
+
+timeout:
+  slot_timeout: 15s
+  pipeline_timeout: 60s

@@ -1,0 +1,48 @@
+# Pipeline: offspring_evaluation
+# Source: docs/spec/03-pipeline-templates.md (Section 3.3.7)
+# Description: Offspring system uses this for isolated testing of improvements
+
+pipeline_version: 1
+pipeline_id: offspring_evaluation
+description: "Isolated testing and evaluation of offspring variants"
+
+accepted_message_types:
+  - internal_trigger
+
+slots:
+  - slot_id: variant_setup
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: true
+    timeout_seconds: 60
+
+  - slot_id: test_execution
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 300
+
+  - slot_id: evaluation_scoring
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 60
+
+  - slot_id: promotion_decision
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 30
+
+error_handling:
+  on_slot_failure: fail
+  on_pipeline_failure: skip_and_log
+  max_revisions: 0
+
+timeout:
+  slot_timeout: 300s
+  pipeline_timeout: 600s

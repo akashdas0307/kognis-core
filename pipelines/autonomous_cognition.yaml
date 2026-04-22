@@ -1,0 +1,70 @@
+# Pipeline: autonomous_cognition
+# Source: docs/spec/03-pipeline-templates.md (Section 3.3.4)
+# Description: System-initiated cognition without external input
+
+pipeline_version: 1
+pipeline_id: autonomous_cognition
+description: "System-initiated cognition without external input"
+
+accepted_message_types:
+  - wake_up_handoff
+  - daydream_seed
+  - internal_trigger
+
+slots:
+  - slot_id: internal_trigger
+    required: false
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: true
+    timeout_seconds: 5
+    on_empty: skip
+
+  - slot_id: input_reception
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: parallel
+    valid_entry_point: true
+    timeout_seconds: 5
+    on_empty: skip
+
+  - slot_id: cognitive_processing
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: true
+    timeout_seconds: 60
+    on_all_failed: fail
+
+  - slot_id: action_review
+    required: false
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 15
+    on_empty: skip
+
+  - slot_id: action_execution
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: by_action_type
+    valid_entry_point: false
+    timeout_seconds: 30
+    on_empty: skip
+
+  - slot_id: output_delivery
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: by_channel_match
+    valid_entry_point: false
+    timeout_seconds: 10
+    on_empty: skip
+
+error_handling:
+  on_slot_failure: skip_and_log
+  on_pipeline_failure: skip_and_log
+  max_revisions: 2
+
+timeout:
+  slot_timeout: 30s
+  pipeline_timeout: 120s

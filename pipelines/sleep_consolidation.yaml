@@ -1,0 +1,58 @@
+# Pipeline: sleep_consolidation
+# Source: docs/spec/03-pipeline-templates.md (Section 3.3.5)
+# Description: Sleep-time processing — runs during Sleep Stage 3 (Deep Consolidation)
+
+pipeline_version: 1
+pipeline_id: sleep_consolidation
+description: "Sleep-time memory consolidation, trait discovery, and maintenance"
+
+accepted_message_types:
+  - internal_trigger
+
+slots:
+  - slot_id: memory_consolidation
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: true
+    timeout_seconds: 300
+
+  - slot_id: trait_discovery
+    required: false
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 120
+    on_empty: skip
+
+  - slot_id: identity_update
+    required: false
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 60
+    on_empty: skip
+
+  - slot_id: offspring_processing
+    required: false
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 120
+    on_empty: skip
+
+  - slot_id: wake_handoff_preparation
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 60
+
+error_handling:
+  on_slot_failure: skip_and_log
+  on_pipeline_failure: skip_and_log
+  max_revisions: 1
+
+timeout:
+  slot_timeout: 300s
+  pipeline_timeout: 7200s

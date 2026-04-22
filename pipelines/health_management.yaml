@@ -1,0 +1,50 @@
+# Pipeline: health_management
+# Source: docs/spec/03-pipeline-templates.md (Section 3.3.6)
+# Description: Health alerts and diagnostic flows
+
+pipeline_version: 1
+pipeline_id: health_management
+description: "Health alerts and diagnostic processing flows"
+
+accepted_message_types:
+  - health_alert
+
+slots:
+  - slot_id: alert_reception
+    required: true
+    allows_multiple_plugins: true
+    execution_mode: parallel
+    valid_entry_point: true
+    timeout_seconds: 3
+
+  - slot_id: diagnostic_assessment
+    required: true
+    allows_multiple_plugins: false
+    execution_mode: sequential_by_priority
+    valid_entry_point: false
+    timeout_seconds: 10
+
+  - slot_id: remediation
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: by_action_type
+    valid_entry_point: false
+    timeout_seconds: 30
+    on_empty: skip
+
+  - slot_id: notification
+    required: false
+    allows_multiple_plugins: true
+    execution_mode: by_channel_match
+    valid_entry_point: false
+    timeout_seconds: 5
+    on_empty: skip
+
+error_handling:
+  on_slot_failure: skip_and_log
+  on_pipeline_failure: notify_and_queue
+  max_revisions: 1
+
+timeout:
+  slot_timeout: 30s
+  pipeline_timeout: 60s
