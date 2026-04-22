@@ -198,7 +198,7 @@ class StateStore:
                     "corrupt_snapshot",
                     f"Cannot extract state.json from {snapshot_path}",
                 )
-            return json.load(f)
+            return json.load(f)  # type: ignore[no-any-return]
 
     def _prune_old_snapshots(self) -> None:
         """Prune Layer 2 snapshots older than retention period.

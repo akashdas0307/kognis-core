@@ -160,7 +160,7 @@ class EventBusClient:
 
         payload = json.dumps(data).encode("utf-8")
         msg = await self._nc.request(topic, payload, timeout=timeout)
-        return json.loads(msg.data.decode("utf-8"))
+        return json.loads(msg.data.decode("utf-8"))  # type: ignore[no-any-return]
 
     @property
     def message_count(self) -> int:

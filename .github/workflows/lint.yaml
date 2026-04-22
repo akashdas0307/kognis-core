@@ -53,7 +53,7 @@ jobs:
         run: ruff format --check kognis_sdk/ tests/
 
       - name: Mypy
-        run: mypy kognis_sdk/ --ignore-missing-imports
+        run: mypy kognis_sdk/ --ignore-missing-imports --exclude 'kognis_sdk/generated/'
 
   lint-yaml:
     runs-on: ubuntu-latest

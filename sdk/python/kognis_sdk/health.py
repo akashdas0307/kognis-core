@@ -96,7 +96,7 @@ class HealthPulseEmitter:
         self._current_activity = ""
         self._last_dispatch_at: str | None = None
         self._alerts: list[dict[str, str]] = []
-        self._task: asyncio.Task | None = None
+        self._task: asyncio.Task[None] | None = None
         self._running = False
 
     @property
