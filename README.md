@@ -113,7 +113,7 @@ Whether what emerges in any specific instance meets any philosophical definition
 
 ## Companion Repositories
 
-- [`kognis-registry`](https://github.com/kognis-framework/kognis-registry) — plugin marketplace
+- [`kognis-registry`](https://github.com/akashdas0307/kognis-registry) — plugin marketplace
 - [`kognis-offspring`](https://github.com/kognis-framework/kognis-offspring) — evolutionary self-improvement state (per-instance, typically private)
 
 ---
