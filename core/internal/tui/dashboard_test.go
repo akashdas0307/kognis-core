@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/akashdas0307/kognis-core/core/internal/eventbus"
 	"github.com/akashdas0307/kognis-core/core/internal/health"
 	"github.com/akashdas0307/kognis-core/core/internal/registry"
 )
@@ -14,16 +15,20 @@ import (
 func TestNewDashboard(t *testing.T) {
 	reg := registry.New()
 	agg := &health.Aggregator{} // minimal, no bus needed for tests
+	bus := &eventbus.Bus{}
 
-	d := NewDashboard(reg, agg)
+	d := NewDashboard(reg, agg, bus)
 	if d == nil {
 		t.Fatal("NewDashboard returned nil")
 	}
-	if d.model.registry != reg {
+	if d.Model.registry != reg {
 		t.Error("model registry not set correctly")
 	}
-	if d.model.aggregator != agg {
+	if d.Model.aggregator != agg {
 		t.Error("model aggregator not set correctly")
+	}
+	if d.bus != bus {
+		t.Error("dashboard bus not set correctly")
 	}
 }
 

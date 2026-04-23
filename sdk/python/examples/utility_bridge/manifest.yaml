@@ -1,0 +1,22 @@
+manifest_version: 1
+plugin_id: "utility_bridge"
+plugin_name: "Utility Bridge"
+version: "0.1.0"
+author: "Kognis"
+license: "MIT"
+description: "Demonstrates tool and budget usage"
+language: "python"
+handler_mode: "stateless"
+
+runtime:
+  entrypoint: "python3 examples/utility_bridge/main.py"
+
+slot_registrations:
+  - pipeline: "user_text_interaction"
+    slot: "utility_request"
+    priority: 50
+    description: "Demonstrates tool and budget usage"
+
+provides_capabilities:
+  - capability_id: "utility_toolset"
+    description: "Example tools"

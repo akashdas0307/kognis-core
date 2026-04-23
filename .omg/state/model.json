@@ -1,0 +1,11 @@
+{
+  "strategy": "balanced",
+  "lane_models": {
+    "planning": "pro",
+    "execution": "flash",
+    "quick_edit": "flash-lite",
+    "review_verify": "pro"
+  },
+  "updated_at": "2026-04-23T18:15:00Z",
+  "source": "omg:model"
+}

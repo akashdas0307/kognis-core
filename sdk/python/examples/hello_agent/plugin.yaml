@@ -1,0 +1,18 @@
+manifest_version: 1
+plugin_id: "hello_agent"
+plugin_name: "Hello Agent"
+version: "0.1.0"
+author: "Kognis"
+license: "MIT"
+description: "A simple stateful agent example"
+language: "python"
+handler_mode: "stateful_agent"
+
+runtime:
+  entrypoint: "python3 main.py"
+
+slot_registrations: []
+
+event_subscriptions:
+  - topic: "kognis.agent.state_change"
+    handler: "on_state_change"

@@ -1,0 +1,18 @@
+manifest_version: 1
+plugin_id: "memory_vault"
+plugin_name: "Memory Vault"
+version: "0.1.0"
+author: "Kognis"
+license: "MIT"
+description: "A stateful agent with persistent storage"
+language: "python"
+handler_mode: "stateful_agent"
+
+runtime:
+  entrypoint: "python3 examples/memory_vault/main.py"
+
+slot_registrations: []
+
+provides_capabilities:
+  - capability_id: "long_term_memory"
+    description: "Persists data across sessions"

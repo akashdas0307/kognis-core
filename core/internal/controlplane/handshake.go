@@ -136,6 +136,27 @@ func (hm *HandshakeManager) StartHandshake(req *HandshakeRequest) (*HandshakeRes
 		return nil, fmt.Errorf("handshake requires plugin_id, name, and version")
 	}
 
+	// IDEMPOTENCY: If already registered and in Step 2+, check if we can return existing info
+	if existing, ok := hm.registry.Get(req.PluginID); ok {
+		step, _ := hm.registry.GetHandshakeStep(req.PluginID)
+		if step >= int(StepAck) && existing.State != registry.StateShuttingDown && existing.State != registry.StateShutDown {
+			// If metadata matches, return the existing registration response
+			if existing.Name == req.Name && existing.Version == req.Version && existing.ManifestHash == req.ManifestHash {
+				log.Printf("handshake: idempotent register for plugin %s (already at step %d)", req.PluginID, step)
+				return &HandshakeResponse{
+					PluginID:         req.PluginID,
+					PluginIDRuntime:  existing.RuntimeID,
+					State:            string(existing.State),
+					EventBusURL:      hm.config.EventBusURL,
+					EventBusToken:    existing.EventBusToken,
+					ControlPlane:     hm.socketPath,
+					ConfigBundle:     existing.ConfigBundle,
+					PeerCapabilities: hm.registry.FindAvailableCapabilities(),
+				}, nil
+			}
+		}
+	}
+
 	// Build the registry entry
 	entry := &registry.PluginEntry{
 		ID:                  req.PluginID,
@@ -171,8 +192,9 @@ func (hm *HandshakeManager) StartHandshake(req *HandshakeRequest) (*HandshakeRes
 	runtimeID := fmt.Sprintf("%s-%s", req.PluginID, generateEventBusToken()[:8])
 	eventBusToken := generateEventBusToken()
 
-	// Store the event bus token in the registry entry
+	// Store the runtime ID and event bus token in the registry entry
 	if p, ok := hm.registry.Get(req.PluginID); ok {
+		p.RuntimeID = runtimeID
 		p.EventBusToken = eventBusToken
 	}
 
@@ -225,6 +247,12 @@ func (hm *HandshakeManager) CompleteHandshake(pluginID string, readyMsg *ReadyMe
 	currentStep, err := hm.registry.GetHandshakeStep(pluginID)
 	if err != nil {
 		return fmt.Errorf("get handshake step for %s: %w", pluginID, err)
+	}
+
+	// IDEMPOTENCY: If already at Step 4 (Active), return success
+	if currentStep == int(StepActive) {
+		log.Printf("handshake: idempotent ready for plugin %s (already ACTIVE)", pluginID)
+		return nil
 	}
 
 	if currentStep != int(StepAck) {

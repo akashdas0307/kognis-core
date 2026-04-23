@@ -1,0 +1,18 @@
+manifest_version: 1
+plugin_id: "sensory_auditory"
+plugin_name: "Auditory Sensor"
+version: "0.1.0"
+author: "Kognis"
+license: "MIT"
+description: "A complex multi-file auditory processing plugin"
+language: "python"
+handler_mode: "stateless"
+
+runtime:
+  entrypoint: "python3 examples/sensory_auditory/main.py"
+
+slot_registrations:
+  - pipeline: "user_voice_interaction"
+    slot: "voice_capture"
+    priority: 10
+    description: "Extracts phonemes and acoustic features"
