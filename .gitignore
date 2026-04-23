@@ -60,4 +60,5 @@ graphify-out/
 # Test artifacts
 coverage.xml
 htmlcov/
-.coverage
+.coverage.omg/
+.omc/
