@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /home/akashdas/Desktop/kognis-framework/kognis-core && git add core/cmd/kognis/main.go core/go.mod core/go.sum core/internal/bypass/ core/internal/capability/ core/internal/controlplane...",
-  "error": "Exit code 1\nThe following paths are ignored by one of your .gitignore files:\ncore/go.sum\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\"",
-  "timestamp": "2026-04-22T15:52:55.364Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"cd /home/akashdas/Desktop/kognis-framework/kognis-core && go vet ./core/... 2>&1\",\"timeout\":60000,\"description\":\"Run go vet to check for errors\"}",
+  "error": "Exit code 1\npattern ./core/...: directory prefix core does not contain main module or its selected dependencies",
+  "timestamp": "2026-04-22T21:44:21.657Z",
+  "retry_count": 1
 }

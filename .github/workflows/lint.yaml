@@ -65,3 +65,23 @@ jobs:
 
       - name: Lint YAML
         run: yamllint -d relaxed schemas/ pipelines/
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SDK and test dependencies
+        run: pip install -e "sdk/python[dev]"
+
+      - name: Run E2E tests
+        run: make test-e2e
+        working-directory: core

@@ -7,7 +7,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nats-io/nats.go"
 
+	"github.com/akashdas0307/kognis-core/core/internal/eventbus"
 	"github.com/akashdas0307/kognis-core/core/internal/health"
 	"github.com/akashdas0307/kognis-core/core/internal/registry"
 	"github.com/akashdas0307/kognis-core/core/internal/tui/panels"
@@ -21,23 +23,37 @@ type tickMsg time.Time
 // Dashboard is the terminal UI for monitoring the Kognis core daemon.
 // It wraps a bubbletea Model for backward compatibility.
 type Dashboard struct {
-	model model
+	Model model
+	bus   *eventbus.Bus
 }
 
 // NewDashboard creates a new TUI dashboard.
-func NewDashboard(reg *registry.Registry, agg *health.Aggregator) *Dashboard {
+func NewDashboard(reg *registry.Registry, agg *health.Aggregator, bus *eventbus.Bus) *Dashboard {
 	return &Dashboard{
-		model: newModel(reg, agg),
+		Model: newModel(reg, agg),
+		bus:   bus,
 	}
 }
 
 // Run starts the dashboard. Blocks until the user quits or context is cancelled.
 func (d *Dashboard) Run(ctx context.Context) error {
 	p := tea.NewProgram(
-		d.model,
+		d.Model,
 		tea.WithAltScreen(),
 		tea.WithContext(ctx),
 	)
+
+	// Subscribe to health pulses to trigger real-time updates in the UI
+	if d.bus != nil {
+		sub, err := d.bus.Subscribe("kognis.health.>", func(msg *nats.Msg) {
+			// Sending a tickMsg triggers a re-render in the BubbleTea loop
+			p.Send(tickMsg(time.Now()))
+		})
+		if err == nil {
+			defer sub.Unsubscribe()
+		}
+	}
+
 	_, err := p.Run()
 	return err
 }

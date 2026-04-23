@@ -160,12 +160,13 @@ func TestStartHandshakeDuplicateRegistration(t *testing.T) {
 		PluginID: "dup-plugin",
 		Name:    "Dup",
 		Version: "1.0.0",
+		ManifestHash: "abc",
 	}
 
 	_, _ = hm.StartHandshake(req)
 	_, err := hm.StartHandshake(req)
-	if err == nil {
-		t.Fatal("expected error for duplicate handshake, got nil")
+	if err != nil {
+		t.Fatalf("expected success for idempotent handshake, got error: %v", err)
 	}
 }
 
@@ -386,10 +387,10 @@ func TestCompleteHandshakeWrongStep(t *testing.T) {
 		t.Fatalf("first CompleteHandshake failed: %v", err)
 	}
 
-	// Try to complete again — plugin is now at step 4, not step 2
+	// Try to complete again — plugin is now at step 4, this should be idempotent and succeed
 	err = hm.CompleteHandshake("wrong-step", readyMsg)
-	if err == nil {
-		t.Fatal("expected error for completing handshake at wrong step, got nil")
+	if err != nil {
+		t.Fatalf("expected success for idempotent CompleteHandshake call, got error: %v", err)
 	}
 }
 

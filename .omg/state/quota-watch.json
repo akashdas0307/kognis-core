@@ -1,0 +1,21 @@
+{
+  "turn_count": 49,
+  "last_session_id": "f4e000b1-a305-4c09-bc98-f15b25bf0936",
+  "last_event_key": "f4e000b1-a305-4c09-bc98-f15b25bf0936:transcript:d10b717b4a3bfff82dcf3b74f462d03062b7ddefc3a3e4013f1f25885497476a",
+  "last_transcript_hash": "d10b717b4a3bfff82dcf3b74f462d03062b7ddefc3a3e4013f1f25885497476a",
+  "last_model": "gemini-3.1-flash-lite-preview",
+  "last_provider": "gemini",
+  "last_turn_total_tokens": 182517,
+  "last_session_total_tokens": 32503558,
+  "session_totals_by_model": {
+    "gemini-3.1-pro-preview": 178312,
+    "gemini-3-flash-preview": 405042,
+    "gemini-3.1-flash-lite-preview": 31920204
+  },
+  "session_totals_by_provider": {
+    "gemini": 32503558
+  },
+  "cwd_mode": "parent-leaf",
+  "last_cwd_label": "kognis-framework/kognis-core",
+  "updated_at": "2026-04-23T15:15:31.534Z"
+}

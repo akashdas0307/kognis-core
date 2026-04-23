@@ -1,0 +1,12 @@
+{
+  "last_session_id": "f4e000b1-a305-4c09-bc98-f15b25bf0936",
+  "last_event_key": "f4e000b1-a305-4c09-bc98-f15b25bf0936:transcript:d10b717b4a3bfff82dcf3b74f462d03062b7ddefc3a3e4013f1f25885497476a",
+  "last_prompted_session_id": "f4e000b1-a305-4c09-bc98-f15b25bf0936",
+  "last_reason": "already-prompted-this-session",
+  "last_prompted_at": "2026-04-23T08:56:39.041Z",
+  "last_user_message_count": 46,
+  "last_actionable_message_count": 24,
+  "deep_interview_lock_active": false,
+  "deep_interview_lock_source": "/home/akashdas/Desktop/kognis-framework/kognis-core/.omg/state/deep-interview.json",
+  "updated_at": "2026-04-23T15:15:31.489Z"
+}

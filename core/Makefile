@@ -9,6 +9,9 @@ build:
 test:
 	go test ./... -v -count=1
 
+test-e2e: build
+	cd $(CURDIR)/.. && pytest tests/e2e -v
+
 lint: fmt vet
 	@echo "lint: ok"
 

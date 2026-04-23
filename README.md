@@ -41,21 +41,21 @@ Read the [foundation documents](docs/foundations/) to understand the full ration
 
 ## Architectural Highlights
 
-- **Microkernel design** — small Go core (~5-8K lines) supervises everything else as plugins
+- **Microkernel design** — small Go core supervises everything else as plugins
 - **Pipeline + slot routing** — messages flow through canonical processing pipelines; plugins register for slots
 - **Stateful agents** — the Cognitive Core runs as a continuous process, not a request-response handler
 - **Biological metaphors** throughout — not decoration, but design blueprint
 - **Plugin-based extensibility** — new capabilities, sensors, and communication channels via plugins
 
-See [master-spec.md](docs/spec/master-spec.md) for the full technical architecture.
+See [the specifications](docs/spec/) for the full technical architecture.
 
 ---
 
 ## Current Status
 
-**Early development — architecture locked, implementation starting.**
+**v0.1.0 Alpha — Implementation Active.**
 
-The framework is being built in public. Expect rapid change. Not ready for any production use.
+The framework has completed its initial scaffolding phase. The Go core daemon and Python SDK are functional. Base plugins are being implemented.
 
 Watch the repository for progress. Milestones are defined in [`milestones/`](milestones/). Completion reports are in [`reports/`](reports/).
 
@@ -66,12 +66,11 @@ Watch the repository for progress. Milestones are defined in [`milestones/`](mil
 ```
 kognis-core/
 ├── docs/                # All documentation (foundations + specs + how-to)
-├── core/                # Go core daemon (created during development)
+├── core/                # Go core daemon
 ├── sdk/                 # Plugin SDKs (Python primary)
 ├── pipelines/           # Canonical pipeline templates
 ├── schemas/             # Shared YAML/JSON schemas
 ├── tests/               # Integration tests
-├── milestones/          # Work package definitions
 └── reports/             # Milestone completion reports
 ```
 
@@ -79,12 +78,12 @@ See [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md) for details.
 
 ---
 
-## For Developers & Contributors
+## Getting Started
 
-1. Read [`docs/foundations/master-foundation.md`](docs/foundations/master-foundation.md) for the vision
-2. Read [`docs/spec/master-spec.md`](docs/spec/master-spec.md) for the technical contracts
-3. Read [`docs/DEVELOPMENT_SOP.md`](docs/DEVELOPMENT_SOP.md) for the working rules
-4. Read [`CLAUDE.md`](CLAUDE.md) if you're an AI agent working on this project
+1.  **Read the vision:** [`docs/foundations/01-vision.md`](docs/foundations/01-vision.md)
+2.  **Install the framework:** See [`INSTALL.md`](INSTALL.md)
+3.  **Learn the technicals:** [`docs/spec/`](docs/spec/)
+4.  **Development rules:** [`docs/DEVELOPMENT_SOP.md`](docs/DEVELOPMENT_SOP.md)
 
 ---
 

@@ -1,0 +1,18 @@
+manifest_version: 1
+plugin_id: "echo_chat"
+plugin_name: "Echo Chat"
+version: "0.1.0"
+author: "Kognis"
+license: "MIT"
+description: "A stateless chat processing plugin"
+language: "python"
+handler_mode: "stateless"
+
+runtime:
+  entrypoint: "python3 examples/echo_chat/main.py"
+
+slot_registrations:
+  - pipeline: "user_text_interaction"
+    slot: "chat_input"
+    priority: 50
+    description: "Echoes back chat messages"

@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git add reports/phase-4-summary.md && git commit -m \\\"$(cat <<'EOF'\\ndocs(reports): add Phase 4 Python SDK consolidated report\\n\\nHard milestone boundary report for M-001 through M-012.\\n2...",
-  "error": "Exit code 128\nwarning: could not open directory 'sdk/python/reports/': No such file or directory\nfatal: pathspec 'reports/phase-4-summary.md' did not match any files",
-  "timestamp": "2026-04-22T13:11:03.388Z",
-  "retry_count": 1
+  "tool_input_preview": "{\"command\":\"mypy kognis_sdk/ --ignore-missing-imports --exclude 'kognis_sdk/generated/' 2>&1\",\"timeout\":60000,\"description\":\"Test mypy with follow_imports skip override\"}",
+  "error": "Exit code 1\nkognis_sdk/control_plane.py:20: error: Unused \"type: ignore\" comment  [unused-ignore]\nFound 1 error in 1 file (checked 13 source files)",
+  "timestamp": "2026-04-22T21:52:02.122Z",
+  "retry_count": 2
 }

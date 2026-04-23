@@ -83,6 +83,12 @@
   },
   "hotPaths": [
     {
+      "path": "internal/supervisor/supervisor.go",
+      "accessCount": 14,
+      "lastAccessed": 1776893561458,
+      "type": "file"
+    },
+    {
       "path": "internal/router/msgrouter.go",
       "accessCount": 9,
       "lastAccessed": 1776871684523,
@@ -95,27 +101,27 @@
       "type": "file"
     },
     {
+      "path": ".golangci.yml",
+      "accessCount": 7,
+      "lastAccessed": 1776894252746,
+      "type": "file"
+    },
+    {
+      "path": "internal/supervisor/supervisor_test.go",
+      "accessCount": 6,
+      "lastAccessed": 1776880467283,
+      "type": "file"
+    },
+    {
       "path": "internal/registry/registry.go",
-      "accessCount": 4,
-      "lastAccessed": 1776871101094,
+      "accessCount": 6,
+      "lastAccessed": 1776893548547,
       "type": "file"
     },
     {
       "path": "internal/router/router.go",
       "accessCount": 4,
       "lastAccessed": 1776871181582,
-      "type": "file"
-    },
-    {
-      "path": "internal/supervisor/supervisor.go",
-      "accessCount": 4,
-      "lastAccessed": 1776872311433,
-      "type": "file"
-    },
-    {
-      "path": "internal/supervisor/supervisor_test.go",
-      "accessCount": 4,
-      "lastAccessed": 1776872637798,
       "type": "file"
     },
     {
@@ -137,6 +143,12 @@
       "type": "file"
     },
     {
+      "path": "cmd/kognis/main.go",
+      "accessCount": 3,
+      "lastAccessed": 1776879860786,
+      "type": "file"
+    },
+    {
       "path": "internal/envelope/envelope.go",
       "accessCount": 2,
       "lastAccessed": 1776871100972,
@@ -146,12 +158,6 @@
       "path": "go.mod",
       "accessCount": 2,
       "lastAccessed": 1776871113068,
-      "type": "file"
-    },
-    {
-      "path": "cmd/kognis/main.go",
-      "accessCount": 2,
-      "lastAccessed": 1776872759914,
       "type": "file"
     },
     {
@@ -182,6 +188,18 @@
       "path": "internal/router/dispatch_test.go",
       "accessCount": 1,
       "lastAccessed": 1776871275947,
+      "type": "file"
+    },
+    {
+      "path": "internal/controlplane/service.go",
+      "accessCount": 1,
+      "lastAccessed": 1776879875317,
+      "type": "file"
+    },
+    {
+      "path": "internal/controlplane/handshake.go",
+      "accessCount": 1,
+      "lastAccessed": 1776879903352,
       "type": "file"
     }
   ],

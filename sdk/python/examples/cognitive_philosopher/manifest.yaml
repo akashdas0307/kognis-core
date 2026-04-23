@@ -1,0 +1,17 @@
+manifest_version: 1
+plugin_id: "cognitive_philosopher"
+plugin_name: "Philosopher Agent"
+version: "0.1.0"
+author: "Kognis"
+license: "MIT"
+description: "A complex stateful agent split across modules"
+language: "python"
+handler_mode: "stateful_agent"
+
+runtime:
+  entrypoint: "python3 examples/cognitive_philosopher/main.py"
+
+slot_registrations: []
+
+event_publications:
+  - topic: "kognis.agent.philosophy_update"

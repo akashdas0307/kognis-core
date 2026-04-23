@@ -69,6 +69,7 @@ type PluginEntry struct {
 	Capabilities      []string
 	SlotRegistrations []SlotRegistration
 	PID               int
+	RuntimeID         string               // unique ID for this specific run (SPEC 04 Step 2)
 	EventBusToken     string
 	LatencyClass      string
 	LLMExposedTo      []string
@@ -86,6 +87,7 @@ type PluginEntry struct {
 	ConfigBundle         map[string]string    // config received from core in REGISTER_ACK
 	ShutdownRequestedAt  time.Time            // when shutdown was requested
 	Entrypoint           string               // command to start the plugin (SPEC 02 runtime.entrypoint)
+	Path                 string               // filesystem path to the plugin directory
 }
 
 // SlotRegistration records a plugin's registration for a pipeline slot.

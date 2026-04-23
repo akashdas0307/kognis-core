@@ -126,23 +126,51 @@ func TestServiceRegisterDuplicatePlugin(t *testing.T) {
 	ctx := context.Background()
 
 	// First registration
+	resp1, _ := svc.Register(ctx, &RegisterRequest{
+		PluginId: "dup-plugin",
+		Name:     "Dup",
+		Version:  "1.0.0",
+	})
+
+	// Duplicate registration (identical parameters)
+	resp2, err := svc.Register(ctx, &RegisterRequest{
+		PluginId: "dup-plugin",
+		Name:     "Dup",
+		Version:  "1.0.0",
+	})
+	if err != nil {
+		t.Fatalf("expected no gRPC error for duplicate registration: %v", err)
+	}
+	if resp2.Error != "" {
+		t.Fatalf("expected no error field in response for idempotent registration, got: %s", resp2.Error)
+	}
+	if resp2.PluginIdRuntime != resp1.PluginIdRuntime {
+		t.Fatalf("expected same runtime ID, got %s and %s", resp1.PluginIdRuntime, resp2.PluginIdRuntime)
+	}
+}
+
+func TestServiceRegisterDuplicatePluginDifferentMetadata(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+
+	// First registration
 	_, _ = svc.Register(ctx, &RegisterRequest{
 		PluginId: "dup-plugin",
 		Name:     "Dup",
 		Version:  "1.0.0",
 	})
 
-	// Duplicate registration
+	// Duplicate registration (different version)
 	resp, err := svc.Register(ctx, &RegisterRequest{
 		PluginId: "dup-plugin",
 		Name:     "Dup",
-		Version:  "1.0.0",
+		Version:  "1.1.0",
 	})
 	if err != nil {
-		t.Fatalf("expected response with error field, not gRPC error: %v", err)
+		t.Fatalf("expected response with error, not gRPC error: %v", err)
 	}
 	if resp.Error == "" {
-		t.Fatal("expected error field in response for duplicate registration")
+		t.Fatal("expected error field in response for duplicate registration with different metadata")
 	}
 }
 
@@ -683,5 +711,34 @@ func TestServiceFullLifecycle(t *testing.T) {
 	entry, _ := reg.Get("lifecycle-test")
 	if entry.State != registry.StateShuttingDown {
 		t.Fatalf("expected SHUTTING_DOWN, got %s", entry.State)
+	}
+}
+
+// --- Idempotency Tests ---
+
+func TestServiceReadyIdempotency(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+
+	// Register plugin
+	_, err := svc.Register(ctx, &RegisterRequest{
+		PluginId: "ready-idempotent",
+		Name:     "ReadyIdempotent",
+		Version:  "1.0.0",
+	})
+	if err != nil {
+		t.Fatalf("Register() failed: %v", err)
+	}
+
+	// First Ready call
+	_, err = svc.Ready(ctx, &ReadyRequest{PluginId: "ready-idempotent"})
+	if err != nil {
+		t.Fatalf("First Ready() failed: %v", err)
+	}
+
+	// Second Ready call (idempotent)
+	_, err = svc.Ready(ctx, &ReadyRequest{PluginId: "ready-idempotent"})
+	if err != nil {
+		t.Fatalf("Second Ready() failed (should be idempotent): %v", err)
 	}
 }

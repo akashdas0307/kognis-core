@@ -1,22 +1,89 @@
 package supervisor
-
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"gopkg.in/yaml.v3"
 
 	"github.com/akashdas0307/kognis-core/core/internal/config"
 	"github.com/akashdas0307/kognis-core/core/internal/eventbus"
 	"github.com/akashdas0307/kognis-core/core/internal/registry"
 	"github.com/akashdas0307/kognis-core/core/internal/router"
 )
+
+// ...
+
+// DiscoverAndSpawn scans the plugins directory and spawns initial plugins.
+func (s *Supervisor) DiscoverAndSpawn(pluginsDir string) error {
+	entries, err := os.ReadDir(pluginsDir)
+	if err != nil {
+		return fmt.Errorf("read plugins directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		pluginPath := filepath.Join(pluginsDir, entry.Name())
+		
+		// If it's a symlink, resolve it to check if it's a directory
+		info, err := os.Stat(pluginPath)
+		if err != nil {
+			log.Printf("supervisor: failed to stat %s: %v", pluginPath, err)
+			continue
+		}
+		if !info.IsDir() {
+			continue
+		}
+
+		manifestPath := filepath.Join(pluginPath, "plugin.yaml")
+
+		data, err := os.ReadFile(manifestPath)
+		if err != nil {
+			log.Printf("supervisor: no plugin.yaml found in %s, skipping", pluginPath)
+			continue
+		}
+
+		var manifest struct {
+			PluginID   string `yaml:"plugin_id"`
+			PluginName string `yaml:"plugin_name"`
+			Version    string `yaml:"version"`
+			Runtime    struct {
+				Entrypoint string `yaml:"entrypoint"`
+			} `yaml:"runtime"`
+		}
+		if err := yaml.Unmarshal(data, &manifest); err != nil {
+			log.Printf("supervisor: failed to parse manifest in %s: %v", pluginPath, err)
+			continue
+		}
+
+		log.Printf("supervisor: discovering plugin %s (%s)", manifest.PluginID, manifest.PluginName)
+
+		// Register the plugin entry in the registry
+		entry := &registry.PluginEntry{
+			ID:         manifest.PluginID,
+			Name:       manifest.PluginName,
+			Version:    manifest.Version,
+			State:      registry.StateStarting,
+			Entrypoint: manifest.Runtime.Entrypoint,
+		}
+		if err := s.registry.Register(entry); err != nil {
+		log.Printf("DEBUG: DiscoverAndSpawn: registered %s", manifest.PluginID)
+			log.Printf("supervisor: failed to register %s: %v", manifest.PluginID, err)
+			continue
+		}
+
+		// Kickstart the plugin
+		s.restartPlugin(manifest.PluginID)
+	}
+	return nil
+}
 
 // missedHeartbeatThreshold is the number of consecutive missed heartbeats
 // before a plugin is considered UNRESPONSIVE (SPEC 04 Section 4.7).
@@ -257,13 +324,31 @@ func (s *Supervisor) checkPluginHealth() {
 }
 
 // spawnProcess starts a new plugin process from an entrypoint string.
-func (s *Supervisor) spawnProcess(entrypoint string) error {
+func (s *Supervisor) spawnProcess(entrypoint string, pluginPath string) error {
+	// If the entrypoint uses 'python', replace with 'python3' for compatibility
+	entrypoint = strings.Replace(entrypoint, "python ", "/usr/bin/python3 ", 1)
+	
 	parts := strings.Fields(entrypoint)
 	if len(parts) == 0 {
 		return fmt.Errorf("empty entrypoint")
 	}
 
 	cmd := exec.Command(parts[0], parts[1:]...)
+	
+	// Set the working directory to the plugin path
+	cmd.Dir = pluginPath
+	
+	// Set PYTHONPATH to include the plugin's src directory and the SDK
+	pluginSrc := filepath.Join(pluginPath, "src")
+	sdkPath := "/home/akashdas/Desktop/kognis-framework/kognis-core/sdk/python"
+	pythonPath := fmt.Sprintf("%s:%s:%s", pluginSrc, sdkPath, os.Getenv("PYTHONPATH"))
+	cmd.Env = append(os.Environ(), "PYTHONPATH="+pythonPath)
+
+	// Capture output for debugging
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	log.Printf("DEBUG: spawnProcess: cmd=%v, dir=%s, PYTHONPATH=%s", cmd.Args, cmd.Dir, pythonPath)
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start process: %w", err)
@@ -276,6 +361,7 @@ func (s *Supervisor) spawnProcess(entrypoint string) error {
 // restartPlugin attempts to restart an unresponsive plugin using the SPEC 08
 // backoff schedule and circuit breaker logic.
 func (s *Supervisor) restartPlugin(pluginID string) {
+	log.Printf("DEBUG: restartPlugin called for %s", pluginID)
 	// Check circuit breaker BEFORE incrementing (SPEC 08 Section 8.4).
 	// If already at or above max, open the circuit immediately.
 	if s.registry.ShouldCircuitOpen(pluginID, s.cfg.MaxRestartAttempts) {
@@ -311,14 +397,14 @@ func (s *Supervisor) restartPlugin(pluginID string) {
 
 	// If the plugin has an entrypoint defined, spawn a new process.
 	if plugin, ok := s.registry.Get(pluginID); ok && plugin.Entrypoint != "" {
-		go func(entrypoint string, d time.Duration) {
+		go func(entrypoint string, path string, d time.Duration) {
 			if d > 0 {
 				time.Sleep(d)
 			}
-			if err := s.spawnProcess(entrypoint); err != nil {
+			if err := s.spawnProcess(entrypoint, path); err != nil {
 				log.Printf("supervisor: failed to spawn process for %s: %v", pluginID, err)
 			}
-		}(plugin.Entrypoint, delay)
+		}(plugin.Entrypoint, plugin.Path, delay)
 	}
 
 	// Publish restart command
